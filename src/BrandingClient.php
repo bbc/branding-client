@@ -42,7 +42,7 @@ class BrandingClient
 
         if (array_key_exists('env', $options) && !in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
             throw new BrandingException(sprintf(
-                'Invalid environment supplied, expected one of "%s" but got "%s',
+                'Invalid environment supplied, expected one of "%s" but got "%s"',
                 implode(', ', self::SUPPORTED_ENVIRONMENTS),
                 $options['env']
             ));
@@ -50,7 +50,7 @@ class BrandingClient
 
         if (array_key_exists('cacheTime', $options) && !(is_int($options['cacheTime']) && $options['cacheTime'] >= 0)) {
             throw new BrandingException(sprintf(
-                'Invalid cacheTime supplied, expected a positive integer but got "%s',
+                'Invalid cacheTime supplied, expected a positive integer but got "%s"',
                 $options['cacheTime']
             ));
         }
@@ -112,11 +112,10 @@ class BrandingClient
     private function getUrl($projectId)
     {
         $url = self::BRANDING_WEBSERVICE_URL;
-        $env = '';
+        $env = $this->options['env'];
 
         if ($this->options['env'] != 'live') {
             $url = self::BRANDING_WEBSERVICE_URL_DEV;
-            $env = $this->options['env'] . '.';
         }
 
         return str_replace(['{env}', '{projectId}'], [$env, $projectId], $url);

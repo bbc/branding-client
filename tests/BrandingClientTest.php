@@ -1,0 +1,164 @@
+<?php
+
+namespace Tests\BBC\BrandingClient;
+
+use BBC\BrandingClient\Branding;
+use BBC\BrandingClient\BrandingClient;
+use Doctrine\Common\Cache\ArrayCache;
+
+class BrandingClientTest extends MultiGuzzleTestCase
+{
+    public $cache;
+
+    public function setUp()
+    {
+        $this->cache = new ArrayCache();
+    }
+
+    public function testConstructor()
+    {
+        $expectedDefaultOptions = [
+            'env' => 'live',
+            'cacheTime' => 86400,
+        ];
+
+        $brandingClient = new BrandingClient(
+            $this->getClient(),
+            $this->cache
+        );
+
+        $this->assertEquals($expectedDefaultOptions, $brandingClient->getOptions());
+    }
+
+    public function testConstructorCustomOptions()
+    {
+        $options = [
+            'env' => 'test',
+            'cacheTime' => 10,
+        ];
+
+        $brandingClient = new BrandingClient(
+            $this->getClient(),
+            $this->cache,
+            $options
+        );
+
+
+        $this->assertEquals($options, $brandingClient->getOptions());
+    }
+
+    /**
+     * @expectedException BBC\BrandingClient\BrandingException
+     * @expectedExceptionMessage Invalid environment supplied, expected one of "int, test, live" but got "garbage"
+     */
+    public function testInvalidEnvThrowsException()
+    {
+        new BrandingClient(
+            $this->getClient(),
+            $this->cache,
+            ['env' => 'garbage']
+        );
+    }
+
+    /**
+     * @expectedException BBC\BrandingClient\BrandingException
+     * @expectedExceptionMessage Invalid cacheTime supplied, expected a positive integer but got "-10"
+     */
+    public function testInvalidCacheTimeThrowsException()
+    {
+        new BrandingClient(
+            $this->getClient(),
+            $this->cache,
+            ['cacheTime' => -10]
+        );
+    }
+
+    /**
+     * @dataProvider brandingApiUrlsDataProvider
+     */
+    public function testGetContentCallsCorrectUrl($options, $projectId, $expectedUrl)
+    {
+        $history = $this->getHistoryContainer();
+
+        $client = $this->getClient(
+            [$this->mockSuccessfulJsonResponse()],
+            $history
+        );
+
+        $brandingClient = new BrandingClient($client, $this->cache, $options);
+        $brandingClient->getContent($projectId);
+
+        $this->assertEquals($expectedUrl, $this->getLastRequestUrl($history));
+    }
+
+    public function brandingApiUrlsDataProvider()
+    {
+        return [
+            [['env' => 'live'], 'br-123', 'https://rmp.files.bbci.co.uk/branding/live/projects/br-123.json'],
+            [['env' => 'live'], 'br-123', 'https://rmp.files.bbci.co.uk/branding/live/projects/br-123.json'],
+            [['env' => 'test'], 'br-456', 'https://rmp.test.files.bbci.co.uk/branding/test/projects/br-456.json'],
+            [['env' => 'int'], 'br-789', 'https://rmp.test.files.bbci.co.uk/branding/int/projects/br-789.json'],
+        ];
+    }
+
+    public function testGetContentReturnsBrandingObject()
+    {
+        $expectedContent = new Branding(
+            'headContent',
+            'bodyFirstContent',
+            'bodyLastContent',
+            ['body' => ['bg' => '#eeeeee']],
+            ['language' => 'en']
+        );
+
+        $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
+
+        $brandingClient = new BrandingClient($client, $this->cache);
+        $this->assertEquals($expectedContent, $brandingClient->getContent('br-123'));
+    }
+
+    /**
+     * @expectedException BBC\BrandingClient\BrandingException
+     * @expectedExceptionMessage Invalid Branding Response. Could not get data from webservice
+     */
+    public function testInvalidContentThrowsException()
+    {
+        $client = $this->getClient([$this->mockInvalidJsonResponse()]);
+
+        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient->getContent('br-123');
+    }
+
+    /**
+     * @expectedException BBC\BrandingClient\BrandingException
+     * @expectedExceptionMessage Invalid Branding Response. Response JSON object was invalid or malformed
+     */
+    public function testMalformedContentThrowsException()
+    {
+        $client = $this->getClient([$this->mockMalformedJsonResponse()]);
+
+        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient->getContent('br-123');
+    }
+
+    private function mockSuccessfulJsonResponse()
+    {
+        return $this->mockResponse(200, [], json_encode([
+            'head' => 'headContent',
+            'bodyFirst' => 'bodyFirstContent',
+            'bodyLast' => 'bodyLastContent',
+            'colours' => ['body' => ['bg' => '#eeeeee']],
+            'options' => ['language' => 'en'],
+        ]));
+    }
+
+    private function mockInvalidJsonResponse()
+    {
+        return $this->mockResponse(404, [], '');
+    }
+
+    private function mockMalformedJsonResponse()
+    {
+        return $this->mockResponse(200, [], 'bongos');
+    }
+}

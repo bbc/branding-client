@@ -99,14 +99,16 @@ class Branding
             'bbc_radio_cymru' => 'cymru',
             'bbc_radio_cymru_mwy' => 'cymru',
         );
-        if (isset($this->options['mastheadServiceId']) && array_key_exists($this->options['mastheadServiceId'], $serviceSearchScopes)) {
+        if (isset($this->options['mastheadServiceId']) &&
+            array_key_exists($this->options['mastheadServiceId'], $serviceSearchScopes)) {
             return $serviceSearchScopes[$this->options['mastheadServiceId']];
         }
 
         $navBarSearchScopes = array(
             'radio' => 'iplayer:radio',
         );
-        if (isset($this->options['showNavBar']) && array_key_exists($this->options['showNavBar'], $navBarSearchScopes)) {
+        if (isset($this->options['showNavBar']) &&
+            array_key_exists($this->options['showNavBar'], $navBarSearchScopes)) {
             return $navBarSearchScopes[$this->options['showNavBar']];
         }
 
