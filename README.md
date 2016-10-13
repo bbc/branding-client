@@ -92,13 +92,13 @@ The `Branding` object returned from `getContent()` is a domain object that
 contains information you should pass to the Orbit client and blocks of content
 that you should render in your page.
 
-* `$branding->getHead()` should be injected into your <head>, directly after
+* `$branding->getHead()` should be injected into your `<head>`, directly after
   Orbit's head content.
-* `$branding->getBodyFirst()` should be injected at the top of the <body>,
+* `$branding->getBodyFirst()` should be injected at the top of the `<body>`,
   directly after Orbit's bodyFirst content.
-* `$branding->getBodyLast()` should be injected at the bottom of the <body>,
+* `$branding->getBodyLast()` should be injected at the bottom of the `<body>`,
   directly before Orbit's bodyLast content.
-* `$branding->getOrbitThemeClasses() should be added to your <html> element's
+* `$branding->getOrbitThemeClasses()` should be added to your `<html>` element's
   class attribute to give the Orb the correct coloring.
 
 
