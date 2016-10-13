@@ -26,6 +26,33 @@ class Branding
         $this->bodyLast = $bodyLast;
         $this->colours = $colours;
         $this->options = $options;
+
+        // Define some defaults
+
+        // Language
+        if (!array_key_exists('language', $this->options)) {
+            $this->options['language'] = 'en_GB';
+        }
+
+        // Orb Variant
+        if (!array_key_exists('orb_variation', $this->options)) {
+            $this->options['orb_variation'] = 'default';
+        }
+
+        // Orb Header Color
+        if (!array_key_exists('orb_header', $this->options)) {
+            $this->options['orb_header'] = 'black';
+        }
+
+        // Orb Footer Color
+        if (!array_key_exists('orb_footer', $this->options)) {
+            $this->options['orb_footer'] = 'black';
+        }
+
+        // Orb Footer Text Color
+        if (!array_key_exists('orb_footer_text', $this->options)) {
+            $this->options['orb_footer_text'] = 'light';
+        }
     }
 
     /**
@@ -75,20 +102,12 @@ class Branding
 
     public function getOrbitLanguage()
     {
-        if (array_key_exists('language', $this->options)) {
-            return $this->options['language'];
-        }
-
-        return 'en_GB';
+        return $this->options['language'];
     }
 
     public function getOrbitVariant()
     {
-        if (array_key_exists('orb_variation', $this->options)) {
-            return $this->options['orb_variation'];
-        }
-
-        return 'default';
+        return $this->options['orb_variation'];
     }
 
     public function getOrbitSearchScope()
@@ -99,7 +118,7 @@ class Branding
             'bbc_radio_cymru' => 'cymru',
             'bbc_radio_cymru_mwy' => 'cymru',
         );
-        if (isset($this->options['mastheadServiceId']) &&
+        if (array_key_exists('mastheadServiceId', $this->options) &&
             array_key_exists($this->options['mastheadServiceId'], $serviceSearchScopes)) {
             return $serviceSearchScopes[$this->options['mastheadServiceId']];
         }
@@ -107,7 +126,7 @@ class Branding
         $navBarSearchScopes = array(
             'radio' => 'iplayer:radio',
         );
-        if (isset($this->options['showNavBar']) &&
+        if (array_key_exists('showNavBar', $this->options) &&
             array_key_exists($this->options['showNavBar'], $navBarSearchScopes)) {
             return $navBarSearchScopes[$this->options['showNavBar']];
         }
