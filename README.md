@@ -31,7 +31,7 @@ dependency. Do the same for the rmp-orb-client too:
         }
     ],
     "require": {
-        "bbc/bbc-orb-client": "^1.0",
+        "bbc/bbc-orb-client": "^1.2",
         "bbc/branding-client": "^1.0"
     }
 }
