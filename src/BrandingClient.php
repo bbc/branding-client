@@ -24,6 +24,8 @@ class BrandingClient
     /** @var Cache */
     private $cache;
 
+    private $isGuzzle5 = false;
+
     /**
      * @var array
      *
@@ -46,6 +48,8 @@ class BrandingClient
     ) {
         $this->client = $client;
         $this->cache = $cache;
+
+        $this->isGuzzle5 = !method_exists($this->client, 'sendAsync');
 
         if (array_key_exists('env', $options) && !in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
             throw new BrandingException(sprintf(
@@ -73,7 +77,9 @@ class BrandingClient
         $result = $this->cache->fetch($cacheKey);
         if (!$result) {
             try {
-                $response = $this->client->get($url, ['Accept-Encoding' => 'gzip']);
+                $response = $this->client->get($url, [
+                    'headers' => ['Accept-Encoding' => 'gzip']
+                ]);
                 $result = json_decode($response->getBody()->getContents(), true);
             } catch (RequestException $e) {
                 throw new BrandingException('Invalid Branding Response. Could not get data from webservice', 0, $e);
@@ -88,17 +94,12 @@ class BrandingClient
             if ($this->options['cacheTime']) {
                 $cacheTime = $this->options['cacheTime'];
             } else {
-                $expiryHeader = $response->getHeaderLine('Expires');
-                $currentHeader = $response->getHeaderLine('Date');
+                $expiryDate = $this->getDateFromHeader($response, 'Expires');
+                $currentDate = $this->getDateFromHeader($response, 'Date');
 
-                if ($expiryHeader && $currentHeader) {
-                    $expiryDate = DateTime::createFromFormat('D, d M Y H:i:s O', $expiryHeader);
-                    $currentDate = DateTime::createFromFormat('D, d M Y H:i:s O', $currentHeader);
-
-                    if ($currentDate && $expiryDate) {
-                        $cacheTime = $expiryDate->getTimestamp() - $currentDate->getTimestamp();
-                        $cacheTime = ($cacheTime > 0 ? $cacheTime : 0);
-                    }
+                if ($currentDate && $expiryDate) {
+                    $cacheTime = $expiryDate->getTimestamp() - $currentDate->getTimestamp();
+                    $cacheTime = ($cacheTime > 0 ? $cacheTime : 0);
                 }
             }
 
@@ -144,5 +145,25 @@ class BrandingClient
         }
 
         return str_replace(['{env}', '{projectId}'], [$env, $projectId], $url);
+    }
+
+    private function getDateFromHeader($response, $headerName)
+    {
+        if ($this->isGuzzle5) {
+            //Guzzle 5
+            $headerText = $response->getHeader($headerName);
+        } else {
+            // Guzzle 6
+            $headerText = $response->getHeaderLine($headerName);
+        }
+
+        if ($headerText) {
+            $headerDate = DateTime::createFromFormat('D, d M Y H:i:s O', $headerText);
+            if ($headerDate) {
+                return $headerDate;
+            }
+        }
+
+        return null;
     }
 }

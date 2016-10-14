@@ -83,8 +83,9 @@ Valid $options keys to pass to the `BrandingClient` are:
 
 * `env`: To set an environment to request Branding from. Must be one of
   'live', 'test' or 'int'. If omitted, shall default to 'live'.
-* `cacheTime`: To override the default cache time of one day, set this the
-  `cacheTime` to a value in seconds. If omitted, shall default to one day.
+* `cacheTime`: By default the Client uses the cache control headers of the API
+  response determine how long to cache for. To override this value set the
+  `cacheTime` to a value in seconds.
 
 ### Branding Object
 
@@ -98,7 +99,7 @@ that you should render in your page.
   directly after Orbit's bodyFirst content.
 * `$branding->getBodyLast()` should be injected at the bottom of the `<body>`,
   directly before Orbit's bodyLast content.
-* `$branding->getOrbitThemeClasses()` should be added to your `<html>` element's
+* `$branding->getOrbitThemeClasses()` should be added to your `<html>`   element's
   class attribute to give the Orb the correct coloring.
 
 
