@@ -19,7 +19,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
     {
         $expectedDefaultOptions = [
             'env' => 'live',
-            'cacheTime' => 86400,
+            'cacheTime' => null,
         ];
 
         $brandingClient = new BrandingClient(
@@ -141,9 +141,52 @@ class BrandingClientTest extends MultiGuzzleTestCase
         $brandingClient->getContent('br-123');
     }
 
-    private function mockSuccessfulJsonResponse()
+    /**
+     * @dataProvider cachingTimesDataProvider
+     */
+    public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
-        return $this->mockResponse(200, [], json_encode([
+        $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
+
+        $cache = $this->createPartialMock('Doctrine\Common\Cache\ArrayCache', ['save']);
+        $cache->expects($this->once())->method('save')->with(
+            $this->anything(),
+            $this->anything(),
+            $this->equalTo($expectedCacheDuration)
+        );
+
+        $brandingClient = new BrandingClient($client, $cache, $options);
+        $brandingClient->getContent('br-123');
+    }
+
+    public function cachingTimesDataProvider()
+    {
+        return [
+            [
+                [],
+                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                60
+            ],
+            [
+                [],
+                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
+                450
+            ],
+            // Need both otherwise use default
+            [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
+            [[], ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
+            // Prove explicitly setting a cacheTime in the options overrides all
+            [
+                ['cacheTime' => 234],
+                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                234
+            ],
+        ];
+    }
+
+    private function mockSuccessfulJsonResponse(array $headers = [])
+    {
+        return $this->mockResponse(200, $headers, json_encode([
             'head' => 'headContent',
             'bodyFirst' => 'bodyFirstContent',
             'bodyLast' => 'bodyLastContent',

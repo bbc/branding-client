@@ -4,7 +4,8 @@ namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use Doctrine\Common\Cache\CacheProvider;
+use Doctrine\Common\Cache\Cache;
+use DateTime;
 use RuntimeException;
 
 class BrandingClient
@@ -15,26 +16,32 @@ class BrandingClient
 
     const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
 
+    const FALLBACK_CACHE_DURATION = 1800;
+
     /** @var Client */
     private $client;
 
-    /** @var CacheProvider */
+    /** @var Cache */
     private $cache;
 
     /**
      * @var array
      *
      * env is the environment to point at. One of 'int', 'test' or 'live'
-     * cacheTime is the number of seconds that the branding result should be stored
+     * cacheTime is the number of seconds that the branding result should be
+     *   stored. By default this is derived from the HTTP cache headers of the
+     *   branding API response so you should not need to set it. Setting this
+     *   cacheTime shall override the value from the HTTP cache headers
+     *
      */
     private $options = [
         'env' => 'live',
-        'cacheTime' => 86400 // One day
+        'cacheTime' => null,
     ];
 
     public function __construct(
         Client $client,
-        CacheProvider $cache,
+        Cache $cache,
         array $options = []
     ) {
         $this->client = $client;
@@ -63,11 +70,10 @@ class BrandingClient
         $url = $this->getUrl($projectId);
         $cacheKey = 'BBC_BRANDING_' . md5($url);
 
-        /* Invalidate the cache if new parameters are added */
         $result = $this->cache->fetch($cacheKey);
         if (!$result) {
             try {
-                $response = $this->client->get($url);
+                $response = $this->client->get($url, ['Accept-Encoding' => 'gzip']);
                 $result = json_decode($response->getBody()->getContents(), true);
             } catch (RequestException $e) {
                 throw new BrandingException('Invalid Branding Response. Could not get data from webservice', 0, $e);
@@ -77,8 +83,27 @@ class BrandingClient
                 throw new BrandingException('Invalid Branding Response. Response JSON object was invalid or malformed');
             }
 
+            // Determine how long to cache for
+            $cacheTime = self::FALLBACK_CACHE_DURATION;
+            if ($this->options['cacheTime']) {
+                $cacheTime = $this->options['cacheTime'];
+            } else {
+                $expiryHeader = $response->getHeaderLine('Expires');
+                $currentHeader = $response->getHeaderLine('Date');
+
+                if ($expiryHeader && $currentHeader) {
+                    $expiryDate = DateTime::createFromFormat('D, d M Y H:i:s O', $expiryHeader);
+                    $currentDate = DateTime::createFromFormat('D, d M Y H:i:s O', $currentHeader);
+
+                    if ($currentDate && $expiryDate) {
+                        $cacheTime = $expiryDate->getTimestamp() - $currentDate->getTimestamp();
+                        $cacheTime = ($cacheTime > 0 ? $cacheTime : 0);
+                    }
+                }
+            }
+
             // cache the result
-            $this->cache->save($cacheKey, $result, $this->options['cacheTime']);
+            $this->cache->save($cacheKey, $result, $cacheTime);
         }
         return $this->mapResultToBrandingObject($result);
     }
