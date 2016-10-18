@@ -94,10 +94,10 @@ class BrandingClientTest extends MultiGuzzleTestCase
     public function brandingApiUrlsDataProvider()
     {
         return [
-            [['env' => 'live'], 'br-123', 'https://rmp.files.bbci.co.uk/branding/live/projects/br-123.json'],
-            [['env' => 'live'], 'br-123', 'https://rmp.files.bbci.co.uk/branding/live/projects/br-123.json'],
-            [['env' => 'test'], 'br-456', 'https://rmp.test.files.bbci.co.uk/branding/test/projects/br-456.json'],
-            [['env' => 'int'], 'br-789', 'https://rmp.test.files.bbci.co.uk/branding/int/projects/br-789.json'],
+            [['env' => 'live'], 'br-123', 'https://branding.files.bbci.co.uk/branding/live/projects/br-123.json'],
+            [['env' => 'live'], 'br-123', 'https://branding.files.bbci.co.uk/branding/live/projects/br-123.json'],
+            [['env' => 'test'], 'br-456', 'https://branding.test.files.bbci.co.uk/branding/test/projects/br-456.json'],
+            [['env' => 'int'], 'br-789', 'https://branding.test.files.bbci.co.uk/branding/int/projects/br-789.json'],
         ];
     }
 

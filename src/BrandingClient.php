@@ -10,9 +10,10 @@ use RuntimeException;
 
 class BrandingClient
 {
-    const BRANDING_WEBSERVICE_URL = 'https://rmp.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
+    const BRANDING_WEBSERVICE_URL = 'https://branding.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
 
-    const BRANDING_WEBSERVICE_URL_DEV = 'https://rmp.test.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
+    // @codingStandardsIgnoreLine
+    const BRANDING_WEBSERVICE_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
 
     const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
 
