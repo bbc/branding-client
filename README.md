@@ -75,7 +75,7 @@ $brandingClient = new \BBC\BrandingClient\BrandingClient(
     $brandingOptions // optional
 );
 
-$branding = $orbClient->getContent($projectId, $themeVersionId);
+$branding = $brandingClient->getContent($projectId, $themeVersionId);
 
 $orbitClient = new \RMP\OrbClient\OrbitClient(
     $httpClient,
