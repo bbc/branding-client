@@ -10,10 +10,16 @@ use RuntimeException;
 
 class BrandingClient
 {
-    const BRANDING_WEBSERVICE_URL = 'https://branding.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
+    // Public constants
+    const PREVIEW_PARAM = 'branding-theme-version';
 
-    // @codingStandardsIgnoreLine
+    // Private constants
+    // @codingStandardsIgnoreStart
+    const BRANDING_WEBSERVICE_URL = 'https://branding.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
     const BRANDING_WEBSERVICE_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
+    const BRANDING_WEBSERVICE_PREVIEW_URL = 'https://branding.files.bbci.co.uk/branding/{env}/previews/{themeVersionId}.json';
+    const BRANDING_WEBSERVICE_PREVIEW_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/previews/{themeVersionId}.json';
+    // @codingStandardsIgnoreEnd
 
     const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
 
@@ -70,9 +76,9 @@ class BrandingClient
         $this->options = array_merge($this->options, $options);
     }
 
-    public function getContent($projectId)
+    public function getContent($projectId, $themeVersionId = null)
     {
-        $url = $this->getUrl($projectId);
+        $url = $this->getUrl($projectId, $themeVersionId);
         $cacheKey = 'BBC_BRANDING_' . md5($url);
 
         $result = $this->cache->fetch($cacheKey);
@@ -132,16 +138,28 @@ class BrandingClient
     }
 
     /**
-     * Construct the url to request for a given project ID.
+     * Construct the url to request for a given ProjectID and/or ThemeVersionId.
      *
      * @return string
      */
-    private function getUrl($projectId)
+    private function getUrl($projectId, $themeVersionId)
     {
-        $url = self::BRANDING_WEBSERVICE_URL;
         $env = $this->options['env'];
 
-        if ($this->options['env'] != 'live') {
+        // Preview URLs
+        if ($themeVersionId) {
+            $url = self::BRANDING_WEBSERVICE_PREVIEW_URL;
+
+            if ($env != 'live') {
+                $url = self::BRANDING_WEBSERVICE_PREVIEW_URL_DEV;
+            }
+
+            return str_replace(['{env}', '{themeVersionId}'], [$env, $themeVersionId], $url);
+        }
+
+        $url = self::BRANDING_WEBSERVICE_URL;
+
+        if ($env != 'live') {
             $url = self::BRANDING_WEBSERVICE_URL_DEV;
         }
 

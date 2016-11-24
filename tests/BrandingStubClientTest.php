@@ -20,7 +20,12 @@ class BrandingStubClientTest extends MultiGuzzleTestCase
             []
         );
 
+        // Just a projectId
         $this->assertEquals($expectedBranding, $brandingClient->getContent('br-123'));
+        // With a null themeVersionId
+        $this->assertEquals($expectedBranding, $brandingClient->getContent('br-123', null));
+        // With an explicit themeVersionId
+        $this->assertEquals($expectedBranding, $brandingClient->getContent('br-123', 'themeVersion'));
     }
 
     public function testGetContentWithPresentButUnusedConstructor()

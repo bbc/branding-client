@@ -14,7 +14,7 @@ class BrandingStubClient extends BrandingClient
     ) {
     }
 
-    public function getContent($projectId)
+    public function getContent($projectId, $themeVersionId = null)
     {
         return new Branding(
             '<headContent>',

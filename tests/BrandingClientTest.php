@@ -76,7 +76,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
     /**
      * @dataProvider brandingApiUrlsDataProvider
      */
-    public function testGetContentCallsCorrectUrl($options, $projectId, $expectedUrl)
+    public function testGetContentCallsCorrectUrl($options, $arguments, $expectedUrl)
     {
         $history = $this->getHistoryContainer();
 
@@ -86,18 +86,27 @@ class BrandingClientTest extends MultiGuzzleTestCase
         );
 
         $brandingClient = new BrandingClient($client, $this->cache, $options);
-        $brandingClient->getContent($projectId);
+        $brandingClient->getContent(...$arguments);
 
         $this->assertEquals($expectedUrl, $this->getLastRequestUrl($history));
     }
 
     public function brandingApiUrlsDataProvider()
     {
+        $livePrefix = 'https://branding.files.bbci.co.uk';
+        $devPrefix = 'https://branding.test.files.bbci.co.uk';
+
         return [
-            [['env' => 'live'], 'br-123', 'https://branding.files.bbci.co.uk/branding/live/projects/br-123.json'],
-            [['env' => 'live'], 'br-123', 'https://branding.files.bbci.co.uk/branding/live/projects/br-123.json'],
-            [['env' => 'test'], 'br-456', 'https://branding.test.files.bbci.co.uk/branding/test/projects/br-456.json'],
-            [['env' => 'int'], 'br-789', 'https://branding.test.files.bbci.co.uk/branding/int/projects/br-789.json'],
+            [['env' => 'live'], ['br-123'], $livePrefix . '/branding/live/projects/br-123.json'],
+            [['env' => 'test'], ['br-456'],  $devPrefix . '/branding/test/projects/br-456.json'],
+            [['env' => 'int'], ['br-789'],  $devPrefix . '/branding/int/projects/br-789.json'],
+            // With an explicitly Null themeVersionId
+            [['env' => 'live'], ['br-123', null], $livePrefix . '/branding/live/projects/br-123.json'],
+            [['env' => 'test'], ['br-456', null],  $devPrefix . '/branding/test/projects/br-456.json'],
+            // With a themeVersionId should call the preview URL
+            [['env' => 'live'], ['br-123', '456'], $livePrefix . '/branding/live/previews/456.json'],
+            [['env' => 'test'], ['br-456', '789'],  $devPrefix . '/branding/test/previews/789.json'],
+            [['env' => 'int'], ['br-789', '123'],  $devPrefix . '/branding/int/previews/123.json'],
         ];
     }
 

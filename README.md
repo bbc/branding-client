@@ -52,11 +52,22 @@ call `getContent()` to make a request and return a `Branding` domain model.
 After that make a call to the OrbitClient, passing in the Variant and Language
 options from the branding information.
 
+The first argument of `BrandingClient->getContent()` is the published BrandingId
+you want to render.
+The second argument of `BrandingClient->getContent()` is the preview
+ThemeVersionId that should be shown. Consumers SHOULD implement this if they
+want to support previewing not-yet-published themes.
+
 ```php
 $httpClient = new \GuzzleHttp\Client();
 $cache = new \Doctrine\Common\Cache\ArrayCache();
 $brandingOptions = [];
 $projectId = 'br-0001';
+$themeVersionId = null;
+// If you want to support the preview query strings suggested by the Branding
+// Tool, set the themeVersionId to the following (ideally using your
+// framework's prefered mechanism for reading query parameters):
+// $themeVersionId = $_GET[\BBC\BrandingClient\BrandingClient::PREVIEW_PARAM];
 
 $brandingClient = new \BBC\BrandingClient\BrandingClient(
     $httpClient,
@@ -64,7 +75,7 @@ $brandingClient = new \BBC\BrandingClient\BrandingClient(
     $brandingOptions // optional
 );
 
-$branding = $orbClient->getContent($projectId);
+$branding = $orbClient->getContent($projectId, $themeVersionId);
 
 $orbitClient = new \RMP\OrbClient\OrbitClient(
     $httpClient,
