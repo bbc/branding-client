@@ -105,8 +105,11 @@ class BrandingClient
                 $currentDate = $this->getDateFromHeader($response, 'Date');
 
                 if ($currentDate && $expiryDate) {
+                    // Beware of a cache time of 0 as 0 is treated by Doctrine
+                    // Cache as "Cache for an infinite time" which is very much
+                    // not what we want. -1 will be treated as already expired
                     $cacheTime = $expiryDate->getTimestamp() - $currentDate->getTimestamp();
-                    $cacheTime = ($cacheTime > 0 ? $cacheTime : 0);
+                    $cacheTime = ($cacheTime > 0 ? $cacheTime : -1);
                 }
             }
 
