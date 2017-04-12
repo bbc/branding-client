@@ -17,9 +17,9 @@ class BrandingStubClient extends BrandingClient
     public function getContent($projectId, $themeVersionId = null)
     {
         return new Branding(
-            '<headContent>',
-            '<bodyFirstContent>',
-            '<bodyLastContent>',
+            '<branding-head/>',
+            '<branding-bodyfirst/>',
+            '<branding-bodylast/>',
             ['body' => ['bg' => '#eeeeee']],
             []
         );

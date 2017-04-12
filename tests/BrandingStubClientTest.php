@@ -13,9 +13,9 @@ class BrandingStubClientTest extends MultiGuzzleTestCase
         $brandingClient = new BrandingStubClient();
 
         $expectedBranding = new Branding(
-            '<headContent>',
-            '<bodyFirstContent>',
-            '<bodyLastContent>',
+            '<branding-head/>',
+            '<branding-bodyfirst/>',
+            '<branding-bodylast/>',
             ['body' => ['bg' => '#eeeeee']],
             []
         );
@@ -36,9 +36,9 @@ class BrandingStubClientTest extends MultiGuzzleTestCase
         );
 
         $expectedBranding = new Branding(
-            '<headContent>',
-            '<bodyFirstContent>',
-            '<bodyLastContent>',
+            '<branding-head/>',
+            '<branding-bodyfirst/>',
+            '<branding-bodylast/>',
             ['body' => ['bg' => '#eeeeee']],
             []
         );
