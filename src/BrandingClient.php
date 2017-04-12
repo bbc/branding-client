@@ -6,7 +6,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Doctrine\Common\Cache\Cache;
 use DateTime;
-use RuntimeException;
 
 class BrandingClient
 {
