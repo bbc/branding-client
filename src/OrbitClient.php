@@ -6,23 +6,16 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Doctrine\Common\Cache\Cache;
 use DateTime;
+use Mustache_Engine;
 
-class BrandingClient
+class OrbitClient
 {
-    // Public constants
-    const PREVIEW_PARAM = 'branding-theme-version';
-
     // Private constants
-    // @codingStandardsIgnoreStart
-    const BRANDING_WEBSERVICE_URL = 'https://branding.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
-    const BRANDING_WEBSERVICE_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/projects/{projectId}.json';
-    const BRANDING_WEBSERVICE_PREVIEW_URL = 'https://branding.files.bbci.co.uk/branding/{env}/previews/{themeVersionId}.json';
-    const BRANDING_WEBSERVICE_PREVIEW_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/previews/{themeVersionId}.json';
-    // @codingStandardsIgnoreEnd
+    const FALLBACK_CACHE_DURATION = 1800;
+
+    const ORBIT_WEBSERVICE_URL = 'https://navigation.{env}api.bbci.co.uk/api';
 
     const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
-
-    const FALLBACK_CACHE_DURATION = 1800;
 
     /** @var Client */
     private $client;
@@ -36,10 +29,7 @@ class BrandingClient
      * @var array
      *
      * env is the environment to point at. One of 'int', 'test' or 'live'
-     * cacheTime is the number of seconds that the result should be stored.
-     *   By default this is derived from the HTTP cache headers of the
-     *   branding API response so you should not need to set it. Setting this
-     *   cacheTime shall override the value from the HTTP cache headers
+     * cacheTime is the number of seconds that the result should be stored
      */
     private $options = [
         'env' => 'live',
@@ -57,7 +47,7 @@ class BrandingClient
         $this->isGuzzle5 = !method_exists($this->client, 'sendAsync');
 
         if (array_key_exists('env', $options) && !in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
-            throw new BrandingException(sprintf(
+            throw new OrbitException(sprintf(
                 'Invalid environment supplied, expected one of "%s" but got "%s"',
                 implode(', ', self::SUPPORTED_ENVIRONMENTS),
                 $options['env']
@@ -65,7 +55,7 @@ class BrandingClient
         }
 
         if (array_key_exists('cacheTime', $options) && !(is_int($options['cacheTime']) && $options['cacheTime'] >= 0)) {
-            throw new BrandingException(sprintf(
+            throw new OrbitException(sprintf(
                 'Invalid cacheTime supplied, expected a positive integer but got "%s"',
                 $options['cacheTime']
             ));
@@ -74,25 +64,37 @@ class BrandingClient
         $this->options = array_merge($this->options, $options);
     }
 
-    public function getContent($projectId, $themeVersionId = null)
+    /**
+     * @param requestParams Parameters that are passed to the HTTP call
+     *   `language` and `variant` are the main two
+     * @param requestParams Parameters that are passed to the Orbit template output
+     * @throws OrbitException if the call failed or the response is invalid
+     * @return Orbit object that contains items to inject into your templates
+     *
+     * @see https://navigation.api.bbci.co.uk/docs/index.md
+     */
+    public function getContent(array $requestParams = [], array $templateParams = [])
     {
-        $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheKey = 'BBC_BRANDING_' . md5($url);
+        $url = $this->getUrl();
+        $headers = $this->getRequestHeaders($requestParams);
+        $cacheKey = 'BBC_BRANDING_ORBIT_' . md5($url . json_encode($requestParams) . json_encode($templateParams));
 
         $result = $this->cache->fetch($cacheKey);
         if (!$result) {
             try {
                 $response = $this->client->get($url, [
-                    'headers' => ['Accept-Encoding' => 'gzip']
+                    'headers' => $headers
                 ]);
                 $result = json_decode($response->getBody()->getContents(), true);
             } catch (RequestException $e) {
-                throw new BrandingException('Invalid Branding Response. Could not get data from webservice', 0, $e);
+                throw new OrbitException('Invalid Orbit Response. Could not get data from webservice', 0, $e);
             }
 
             if (!$result || !isset($result['head'])) {
-                throw new BrandingException('Invalid Branding Response. Response JSON object was invalid or malformed');
+                throw new OrbitException('Invalid Orbit Response. Response JSON object was invalid or malformed');
             }
+
+            $result = $this->renderOrbResponse($result, $templateParams);
 
             // Determine how long to cache for
             $cacheTime = self::FALLBACK_CACHE_DURATION;
@@ -114,7 +116,12 @@ class BrandingClient
             // cache the result
             $this->cache->save($cacheKey, $result, $cacheTime);
         }
-        return $this->mapResultToBrandingObject($result);
+
+        return new Orbit(
+            $result['head'],
+            $result['bodyFirst'],
+            $result['bodyLast']
+        );
     }
 
     /**
@@ -127,44 +134,64 @@ class BrandingClient
         return $this->options;
     }
 
-    private function mapResultToBrandingObject(array $branding)
+    /**
+     * Construct the hostname, from the environment and URL override if present
+     *
+     * @throws OrbitException if an invalid environment is set
+     * @return string
+     */
+    private function getUrl()
     {
-        return new Branding(
-            $branding['head'],
-            $branding['bodyFirst'],
-            $branding['bodyLast'],
-            $branding['colours'],
-            $branding['options']
-        );
+        $env = '';
+
+        if ($this->options['env'] != 'live') {
+            $env = $this->options['env'] . '.';
+        }
+
+        return str_replace('{env}', $env, self::ORBIT_WEBSERVICE_URL);
     }
 
     /**
-     * Construct the url to request for a given ProjectID and/or ThemeVersionId.
+     * Returns service-specific request headers for the current options
      *
-     * @return string
+     * @return array
      */
-    private function getUrl($projectId, $themeVersionId)
+    private function getRequestHeaders(array $options)
     {
-        $env = $this->options['env'];
+        return [
+            'Accept' => 'application/ld+json',
+            'Accept-Encoding' => 'gzip',
+            'Accept-Language' => isset($options['language']) ? $options['language'] : 'en',
+            'X-Orb-Variant' => isset($options['variant']) ? $options['variant'] : 'default',
+        ];
+    }
 
-        // Preview URLs
-        if ($themeVersionId) {
-            $url = self::BRANDING_WEBSERVICE_PREVIEW_URL;
+    /**
+     * @param array $result The Orbit result object
+     * @param array $params The content parameters to be applied
+     * @return array
+     */
+    protected function renderOrbResponse(array $result, array $params = [])
+    {
 
-            if ($env != 'live') {
-                $url = self::BRANDING_WEBSERVICE_PREVIEW_URL_DEV;
+        $orbitItem = [];
+        $orbitFields = ['head', 'bodyFirst', 'bodyLast'];
+
+        if ($params) {
+            $mustache = new Mustache_Engine();
+            foreach ($orbitFields as $orbitField) {
+                $orbitItem[$orbitField] = $mustache->render(
+                    $result[$orbitField]['template'],
+                    $params
+                );
             }
-
-            return str_replace(['{env}', '{themeVersionId}'], [$env, $themeVersionId], $url);
+        } else {
+            foreach ($orbitFields as $orbitField) {
+                $orbitItem[$orbitField] = $result[$orbitField]['html'];
+            }
         }
 
-        $url = self::BRANDING_WEBSERVICE_URL;
-
-        if ($env != 'live') {
-            $url = self::BRANDING_WEBSERVICE_URL_DEV;
-        }
-
-        return str_replace(['{env}', '{projectId}'], [$env, $projectId], $url);
+        return $orbitItem;
     }
 
     private function getDateFromHeader($response, $headerName)

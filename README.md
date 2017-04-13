@@ -1,9 +1,8 @@
 BBC\BrandingClient
 ==================
 
-A PHP library to load the Branding Webservice and cache it for a short period.
-It is used in conjunction with the
-[Orbit client](https://github.com/bbc/rmp-orb-client) to provide a content
+A PHP library to load the Branding and Orbit Webservices and cache them for a
+short period. These two webservices are used together to provide a content
 skeleton for BBC pages hosed outside of the Forge platform.
 
 Eventually Orbit content shall be included within the Branding Webservice's
@@ -16,23 +15,18 @@ Installation
 -------------
 
 Add this repository to your composer.json, and add bbc/branding-client as a
-dependency. Do the same for the rmp-orb-client too:
+dependency.
 
 ```json
 {
     "repositories": [
         {
             "type": "vcs",
-            "url": "git@github.com:bbc/rmp-orb-client.git"
-        },
-        {
-            "type": "vcs",
             "url": "git@github.com:bbc/branding-client.git"
         }
     ],
     "require": {
-        "bbc/bbc-orb-client": "^1.2",
-        "bbc/branding-client": "^1.0"
+        "bbc/branding-client": "^1.3"
     }
 }
 ```
@@ -77,16 +71,20 @@ $brandingClient = new \BBC\BrandingClient\BrandingClient(
 
 $branding = $brandingClient->getContent($projectId, $themeVersionId);
 
-$orbitClient = new \RMP\OrbClient\OrbitClient(
+$orbitClient = new \BBC\BrandingClient\OrbitClient(
     $httpClient,
     $cache
+    $orbitOptions // optional
 );
 
 $orb = $orbitClient->getContent([
     'variant' => $branding->getOrbitVariant(),
     'language' => $branding->getOrbitLanguage(),
+], [
     'searchScope' => $branding->getOrbitSearchScope(),
-    // Any additional config options you need to pass to Orbit
+    // Any additional template replacements you need to pass to Orbit
+    // See https://navigation.api.bbc.co.uk/docs/index.md for the various
+    // template keys available
 ]);
 ```
 
@@ -98,11 +96,19 @@ Valid $options keys to pass to the `BrandingClient` are:
   response determine how long to cache for. To override this value set the
   `cacheTime` to a value in seconds.
 
+Valid $options keys to pass to the `OrbitClient` are:
+
+* `env`: To set an environment to request Orbit from. Must be one of
+  'live', 'test' or 'int'. If omitted, shall default to 'live'.
+* `cacheTime`: By default the Client uses the cache control headers of the API
+  response determine how long to cache for. To override this value set the
+  `cacheTime` to a value in seconds.
+
 ### Branding Object
 
-The `Branding` object returned from `getContent()` is a domain object that
-contains information you should pass to the Orbit client and blocks of content
-that you should render in your page.
+The `Branding` object returned from `BrandingClient->getContent()` is a domain
+object that contains information you should pass to the Orbit client and blocks
+of content that you should render in your page.
 
 * `$branding->getHead()` should be injected into your `<head>`, directly after
   Orbit's head content.
@@ -110,8 +116,18 @@ that you should render in your page.
   directly after Orbit's bodyFirst content.
 * `$branding->getBodyLast()` should be injected at the bottom of the `<body>`,
   directly before Orbit's bodyLast content.
-* `$branding->getOrbitThemeClasses()` should be added to your `<html>`   element's
+* `$branding->getOrbitThemeClasses()` should be added to your `<html>` element's
   class attribute to give the Orb the correct coloring.
+
+### Orbit Object
+
+The `Orbit` object returned from `OrbitClient->getContent()` is a domain object
+that contains information you should pass to the Orbit client and blocks of
+content that you should render in your page.
+
+* `$orbit->getHead()` should be injected into your `<head>`
+* `$orbit->getBodyFirst()` should be injected at the top of the `<body>`
+* `$orbit->getBodyLast()` should be injected at the bottom of the `<body>`
 
 
 Development
