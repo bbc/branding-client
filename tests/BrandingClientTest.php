@@ -4,7 +4,8 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingClient;
-use Doctrine\Common\Cache\ArrayCache;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Cache\CacheItem;
 
 class BrandingClientTest extends MultiGuzzleTestCase
 {
@@ -12,7 +13,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
     public function setUp()
     {
-        $this->cache = new ArrayCache();
+        $this->cache = new ArrayAdapter();
     }
 
     public function testConstructor()
@@ -86,7 +87,10 @@ class BrandingClientTest extends MultiGuzzleTestCase
         );
 
         $brandingClient = new BrandingClient($client, $this->cache, $options);
-        $brandingClient->getContent(...$arguments);
+
+        $projectId      = $arguments[0];
+        $themeVersionId = (isset($arguments[1]) ? $arguments[1] : null);
+        $brandingClient->getContent($projectId, $themeVersionId);
 
         $this->assertEquals($expectedUrl, $this->getLastRequestUrl($history));
     }
@@ -95,8 +99,8 @@ class BrandingClientTest extends MultiGuzzleTestCase
     {
         $livePrefix = 'https://branding.files.bbci.co.uk';
         $devPrefix = 'https://branding.test.files.bbci.co.uk';
-
         return [
+            // With only project Id
             [['env' => 'live'], ['br-123'], $livePrefix . '/branding/live/projects/br-123.json'],
             [['env' => 'test'], ['br-456'],  $devPrefix . '/branding/test/projects/br-456.json'],
             [['env' => 'int'], ['br-789'],  $devPrefix . '/branding/int/projects/br-789.json'],

@@ -37,7 +37,7 @@ class OrbitClient
 
     public function __construct(
         Client $client,
-        AbstractAdapter $cache,
+        $cache,
         array $options = []
     ) {
         $this->client = $client;

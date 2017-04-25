@@ -47,7 +47,7 @@ class BrandingClient
 
     public function __construct(
         Client $client,
-        AbstractAdapter $cache,
+        $cache,
         array $options = []
     ) {
         $this->client = $client;
@@ -77,8 +77,8 @@ class BrandingClient
         $cacheKey = 'BBC_BRANDING_' . md5($url);
 
         /** @var CacheItemInterface $result */
-        $result = $this->cache->getItem($cacheKey);
-        if (!$result->isHit()) {
+        $cacheItem = $this->cache->getItem($cacheKey);
+        if (!$cacheItem->isHit()) {
             try {
                 $response = $this->client->get($url, [
                     'headers' => ['Accept-Encoding' => 'gzip']
@@ -110,11 +110,12 @@ class BrandingClient
             }
 
             // cache the result
-            $result->expiresAfter($cacheTime);
-            $this->cache->save($result);
+            $cacheItem->set($result);
+            $cacheItem->expiresAfter($cacheTime);
+            $this->cache->save($cacheItem);
         }
 
-        return $this->mapResultToBrandingObject($result->get());
+        return $this->mapResultToBrandingObject($cacheItem->get());
     }
 
     /**
