@@ -3,14 +3,13 @@
 namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
-use Symfony\Component\Cache\Adapter\AbstractAdapter;
-use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 class BrandingStubClient extends BrandingClient
 {
     public function __construct(
         Client $client = null,
-        AbstractAdapter $cache = null,
+        CacheItemPoolInterface $cache = null,
         array $options = []
     ) {
     }

@@ -4,8 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingClient;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
-use Symfony\Component\Cache\CacheItem;
+use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class BrandingClientTest extends MultiGuzzleTestCase
 {
@@ -13,7 +12,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
     public function setUp()
     {
-        $this->cache = new ArrayAdapter();
+        $this->cache = new NullAdapter();
     }
 
     public function testConstructor()
@@ -87,10 +86,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
         );
 
         $brandingClient = new BrandingClient($client, $this->cache, $options);
-
-        $projectId      = $arguments[0];
-        $themeVersionId = (isset($arguments[1]) ? $arguments[1] : null);
-        $brandingClient->getContent($projectId, $themeVersionId);
+        $brandingClient->getContent(...$arguments);
 
         $this->assertEquals($expectedUrl, $this->getLastRequestUrl($history));
     }
@@ -99,8 +95,8 @@ class BrandingClientTest extends MultiGuzzleTestCase
     {
         $livePrefix = 'https://branding.files.bbci.co.uk';
         $devPrefix = 'https://branding.test.files.bbci.co.uk';
+
         return [
-            // With only project Id
             [['env' => 'live'], ['br-123'], $livePrefix . '/branding/live/projects/br-123.json'],
             [['env' => 'test'], ['br-456'],  $devPrefix . '/branding/test/projects/br-456.json'],
             [['env' => 'int'], ['br-789'],  $devPrefix . '/branding/int/projects/br-789.json'],
@@ -157,16 +153,23 @@ class BrandingClientTest extends MultiGuzzleTestCase
     /**
      * @dataProvider cachingTimesDataProvider
      */
-    public function testCachingTimes($options, $headers, $expectedCacheDuration)
+    public function testCachingTimes2($options, $headers, $expectedCacheDuration)
     {
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
+        $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
+              ->disableOriginalClone()
+              ->disableArgumentCloning()
+              ->disallowMockingUnknownTypes()
+              ->setMethods(['save'])
+              ->getMock();
 
-        $cache = $this->createPartialMock('Doctrine\Common\Cache\ArrayCache', ['save']);
-        $cache->expects($this->once())->method('save')->with(
-            $this->anything(),
-            $this->anything(),
-            $this->equalTo($expectedCacheDuration)
-        );
+        $cache->expects($this->once())->method('save')->with($this->callback(
+            function($cacheItemToSave) use ($expectedCacheDuration) {
+                $current = time() + $expectedCacheDuration;
+                $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
+                return true;
+            }
+        ));
 
         $brandingClient = new BrandingClient($client, $cache, $options);
         $brandingClient->getContent('br-123');
@@ -177,21 +180,24 @@ class BrandingClientTest extends MultiGuzzleTestCase
         return [
             [
                 [],
-                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 60
             ],
             [
                 [],
-                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
+                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
                 450
             ],
             // Need both otherwise use default
             [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
-            [[], ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
+            [[], ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
             // Prove explicitly setting a cacheTime in the options overrides all
             [
                 ['cacheTime' => 234],
-                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 234
             ],
         ];

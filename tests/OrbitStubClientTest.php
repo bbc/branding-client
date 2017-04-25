@@ -4,7 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Orbit;
 use BBC\BrandingClient\OrbitStubClient;
-use Doctrine\Common\Cache\ArrayCache;
+use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class OrbitStubClientTest extends MultiGuzzleTestCase
 {
@@ -25,7 +25,7 @@ class OrbitStubClientTest extends MultiGuzzleTestCase
     {
         $orbitClient = new OrbitStubClient(
             $this->getClient(),
-            new ArrayCache()
+            new NullAdapter()
         );
 
         $expectedOrbit = new Orbit(

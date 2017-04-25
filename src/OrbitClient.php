@@ -4,10 +4,10 @@ namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use Doctrine\Common\Cache\Cache;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\CacheItemInterface;
 use DateTime;
 use Mustache_Engine;
-use Symfony\Component\Cache\Adapter\AbstractAdapter;
 
 class OrbitClient
 {
@@ -21,7 +21,7 @@ class OrbitClient
     /** @var Client */
     private $client;
 
-    /** @var Cache */
+    /** @var CacheItemPoolInterface */
     private $cache;
 
     /**
@@ -37,7 +37,7 @@ class OrbitClient
 
     public function __construct(
         Client $client,
-        $cache,
+        CacheItemPoolInterface $cache,
         array $options = []
     ) {
         $this->client = $client;
@@ -76,8 +76,9 @@ class OrbitClient
         $headers = $this->getRequestHeaders($requestParams);
         $cacheKey = 'BBC_BRANDING_ORBIT_' . md5($url . json_encode($requestParams) . json_encode($templateParams));
 
-        $result = $this->cache->getItem($cacheKey);
-        if (!$result->isHit()) {
+        /** @var CacheItemInterface $cacheItem */
+        $cacheItem = $this->cache->getItem($cacheKey);
+        if (!$cacheItem->isHit()) {
             try {
                 $response = $this->client->get($url, [
                     'headers' => $headers
@@ -111,11 +112,12 @@ class OrbitClient
             }
 
             // cache the result
-            $result->expiresAfter($cacheTime);
-            $this->cache->save($result);
+            $cacheItem->set($result);
+            $cacheItem->expiresAfter($cacheTime);
+            $this->cache->save($cacheItem);
         }
 
-        $resultData = $result->get();
+        $resultData = $cacheItem->get();
         return new Orbit(
             $resultData['head'],
             $resultData['bodyFirst'],

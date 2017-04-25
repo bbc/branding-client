@@ -4,7 +4,7 @@ namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use Symfony\Component\Cache\Adapter\AbstractAdapter;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\CacheItemInterface;
 use DateTime;
 
@@ -28,7 +28,7 @@ class BrandingClient
     /** @var Client */
     private $client;
 
-    /** @var AbstractAdapter */
+    /** @var CacheItemPoolInterface */
     private $cache;
 
     /**
@@ -47,7 +47,7 @@ class BrandingClient
 
     public function __construct(
         Client $client,
-        $cache,
+        CacheItemPoolInterface $cache,
         array $options = []
     ) {
         $this->client = $client;
@@ -76,7 +76,7 @@ class BrandingClient
         $url = $this->getUrl($projectId, $themeVersionId);
         $cacheKey = 'BBC_BRANDING_' . md5($url);
 
-        /** @var CacheItemInterface $result */
+        /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);
         if (!$cacheItem->isHit()) {
             try {
