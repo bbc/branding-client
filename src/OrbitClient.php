@@ -8,7 +8,6 @@ use Doctrine\Common\Cache\Cache;
 use DateTime;
 use Mustache_Engine;
 use Symfony\Component\Cache\Adapter\AbstractAdapter;
-use Psr\Cache\CacheItemInterface;
 
 class OrbitClient
 {
