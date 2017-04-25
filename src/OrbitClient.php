@@ -7,6 +7,8 @@ use GuzzleHttp\Exception\RequestException;
 use Doctrine\Common\Cache\Cache;
 use DateTime;
 use Mustache_Engine;
+use Symfony\Component\Cache\Adapter\AbstractAdapter;
+use Psr\Cache\CacheItemInterface;
 
 class OrbitClient
 {
@@ -36,7 +38,7 @@ class OrbitClient
 
     public function __construct(
         Client $client,
-        Cache $cache,
+        AbstractAdapter $cache,
         array $options = []
     ) {
         $this->client = $client;
@@ -75,8 +77,8 @@ class OrbitClient
         $headers = $this->getRequestHeaders($requestParams);
         $cacheKey = 'BBC_BRANDING_ORBIT_' . md5($url . json_encode($requestParams) . json_encode($templateParams));
 
-        $result = $this->cache->fetch($cacheKey);
-        if (!$result) {
+        $result = $this->cache->getItem($cacheKey);
+        if (!$result->isHit()) {
             try {
                 $response = $this->client->get($url, [
                     'headers' => $headers
@@ -110,13 +112,15 @@ class OrbitClient
             }
 
             // cache the result
-            $this->cache->save($cacheKey, $result, $cacheTime);
+            $result->expiresAfter($cacheTime);
+            $this->cache->save($result);
         }
 
+        $resultData = $result->get();
         return new Orbit(
-            $result['head'],
-            $result['bodyFirst'],
-            $result['bodyLast']
+            $resultData['head'],
+            $resultData['bodyFirst'],
+            $resultData['bodyLast']
         );
     }
 
