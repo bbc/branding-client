@@ -100,15 +100,17 @@ class OrbitClientTest extends MultiGuzzleTestCase
                 'Accept-Encoding' => ['gzip'],
             ]],
             [['env' => 'test'], [], 'https://navigation.test.api.bbci.co.uk/api', []],
-            [['env' => 'int'], [],  'https://navigation.int.api.bbci.co.uk/api', []],
+            [['env' => 'int'], [], 'https://navigation.int.api.bbci.co.uk/api', []],
 
             // With a language and variant
-            [['env' => 'live'], [['language'=> 'cy_CY', 'variant'=> 'cbbc']], 'https://navigation.api.bbci.co.uk/api', [
-                'Accept' => ['application/ld+json'],
-                'Accept-Encoding' => ['gzip'],
-                'X-Orb-Variant' => ['cbbc'],
-                'Accept-Language' => ['cy_CY'],
-            ]],
+            [['env' => 'live'], [['language' => 'cy_CY', 'variant' => 'cbbc']], 'https://navigation.api.bbci.co.uk/api',
+                [
+                    'Accept' => ['application/ld+json'],
+                    'Accept-Encoding' => ['gzip'],
+                    'X-Orb-Variant' => ['cbbc'],
+                    'Accept-Language' => ['cy_CY'],
+                ]
+            ],
         ];
     }
 
@@ -174,14 +176,14 @@ class OrbitClientTest extends MultiGuzzleTestCase
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
 
         $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
-                      ->disableOriginalClone()
-                      ->disableArgumentCloning()
-                      ->disallowMockingUnknownTypes()
-                      ->setMethods(['save'])
-                      ->getMock();
+            ->disableOriginalClone()
+            ->disableArgumentCloning()
+            ->disallowMockingUnknownTypes()
+            ->setMethods(['save'])
+            ->getMock();
 
         $cache->expects($this->once())->method('save')->with($this->callback(
-            function($cacheItemToSave) use ($expectedCacheDuration) {
+            function ($cacheItemToSave) use ($expectedCacheDuration) {
                 $current = time() + $expectedCacheDuration;
                 $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
                 return true;
@@ -196,24 +198,47 @@ class OrbitClientTest extends MultiGuzzleTestCase
     public function cachingTimesDataProvider()
     {
         return [
-            [
+            'date and expires are set' => [
                 [],
                 ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 60
             ],
-            [
+            'date and expires are set different values' => [
                 [],
                 ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
                 450
             ],
             // Need both otherwise use default
-            [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
-            [[], ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
+            'only expires is set' => [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
+            'only date is set' => [[], ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
             // Prove explicitly setting a cacheTime in the options overrides all
-            [
+            'cacheTime takes precedents' => [
                 ['cacheTime' => 234],
-                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                [
+                    'Date' => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                    'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT',
+                    'Cache-Control' => 'max-age=130',
+                ],
                 234
+            ],
+            'max-age by itself' => [
+                [],
+                ['Cache-Control' => 'max-age=120'],
+                120
+            ],
+            'max-age takes precedents over date and expires' => [
+                [],
+                [
+                    'Cache-Control' => 'max-age=130',
+                    'Date' => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                    'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT',
+                ],
+                130
+            ],
+            'Cache-Control exists without max-age' => [
+                [],
+                ['Cache-Control' => 'non-legit'],
+                1800
             ],
         ];
     }
@@ -225,7 +250,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
                 '@vocab' => 'http://www.bbc.co.uk/ontologies/webmodules/'
             ],
             '@type' => 'WebModule',
-            '@id'=> './',
+            '@id' => './',
             'head' => [
                 'template' => 'HEAD {{skipLinkTarget}}',
                 'html' => 'HEAD'
