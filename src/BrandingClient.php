@@ -30,8 +30,6 @@ class BrandingClient
     /** @var Cache */
     private $cache;
 
-    private $isGuzzle5 = false;
-
     /**
      * @var array
      *
@@ -53,8 +51,6 @@ class BrandingClient
     ) {
         $this->client = $client;
         $this->cache = $cache;
-
-        $this->isGuzzle5 = !method_exists($this->client, 'sendAsync');
 
         if (array_key_exists('env', $options) && !in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
             throw new BrandingException(sprintf(
@@ -169,13 +165,7 @@ class BrandingClient
 
     private function getDateFromHeader($response, $headerName)
     {
-        if ($this->isGuzzle5) {
-            //Guzzle 5
-            $headerText = $response->getHeader($headerName);
-        } else {
-            // Guzzle 6
-            $headerText = $response->getHeaderLine($headerName);
-        }
+        $headerText = $response->getHeaderLine($headerName);
 
         if ($headerText) {
             $headerDate = DateTime::createFromFormat('D, d M Y H:i:s O', $headerText);
