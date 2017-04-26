@@ -20,19 +20,6 @@ abstract class MultiGuzzleTestCase extends PHPUnit_Framework_TestCase
 
             return new \GuzzleHttp\Client(['handler' => $handler]);
         }
-
-        $client = new \GuzzleHttp\Client();
-
-        // Mock Requests
-        $mock = new \GuzzleHttp\Subscriber\Mock($mockResponses);
-        $client->getEmitter()->attach($mock);
-
-        // History
-        if (!is_null($historyContainer)) {
-            $client->getEmitter()->attach($historyContainer);
-        }
-
-        return $client;
     }
 
     protected function getHistoryContainer()
@@ -40,8 +27,6 @@ abstract class MultiGuzzleTestCase extends PHPUnit_Framework_TestCase
         if ($this->isGuzzle6()) {
             return [];
         }
-
-        return new \GuzzleHttp\Subscriber\History();
     }
 
     protected function mockResponse($responseStatus, $responseHeaders, $responseBody)
@@ -54,13 +39,6 @@ abstract class MultiGuzzleTestCase extends PHPUnit_Framework_TestCase
                 $responseBody
             );
         }
-
-        // Guzzle 5 object
-        return new \GuzzleHttp\Message\Response(
-            $responseStatus,
-            $responseHeaders,
-            \GuzzleHttp\Stream\Stream::factory($responseBody)
-        );
     }
 
     protected function getLastRequest($history)
@@ -81,10 +59,5 @@ abstract class MultiGuzzleTestCase extends PHPUnit_Framework_TestCase
 
         $lastRequest = $history->getLastRequest();
         return $lastRequest->getUrl();
-    }
-
-    private function isGuzzle6()
-    {
-        return method_exists('\GuzzleHttp\Client', 'sendAsync');
     }
 }
