@@ -8,31 +8,31 @@ abstract class MultiGuzzleTestCase extends PHPUnit_Framework_TestCase
 {
     protected function getClient(array $mockResponses = [], &$historyContainer = null)
     {
-            // Mock Requests
-            $mockHandler = new \GuzzleHttp\Handler\MockHandler($mockResponses);
-            $handler = \GuzzleHttp\HandlerStack::create($mockHandler);
+        // Mock Requests
+        $mockHandler = new \GuzzleHttp\Handler\MockHandler($mockResponses);
+        $handler = \GuzzleHttp\HandlerStack::create($mockHandler);
 
-            // History
-            if (!is_null($historyContainer)) {
-                $handler->push(\GuzzleHttp\Middleware::history($historyContainer));
-            }
+        // History
+        if (!is_null($historyContainer)) {
+            $handler->push(\GuzzleHttp\Middleware::history($historyContainer));
+        }
 
-            return new \GuzzleHttp\Client(['handler' => $handler]);
+        return new \GuzzleHttp\Client(['handler' => $handler]);
     }
 
     protected function getHistoryContainer()
     {
-            return [];
+        return [];
     }
 
     protected function mockResponse($responseStatus, $responseHeaders, $responseBody)
     {
-            // Guzzle 6 object
-            return new \GuzzleHttp\Psr7\Response(
-                $responseStatus,
-                $responseHeaders,
-                $responseBody
-            );
+        // Guzzle 6 object
+        return new \GuzzleHttp\Psr7\Response(
+            $responseStatus,
+            $responseHeaders,
+            $responseBody
+        );
     }
 
     protected function getLastRequest($history)
