@@ -153,7 +153,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
     /**
      * @dataProvider cachingTimesDataProvider
      */
-    public function testCachingTimes2($options, $headers, $expectedCacheDuration)
+    public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
         $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
@@ -180,14 +180,12 @@ class BrandingClientTest extends MultiGuzzleTestCase
         return [
             [
                 [],
-                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT',
-                 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 60
             ],
             [
                 [],
-                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT',
-                 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
+                ['Date'=> 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
                 450
             ],
             // Need both otherwise use default
@@ -196,8 +194,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
             // Prove explicitly setting a cacheTime in the options overrides all
             [
                 ['cacheTime' => 234],
-                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT',
-                 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 234
             ],
         ];

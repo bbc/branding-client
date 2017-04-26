@@ -117,11 +117,11 @@ class OrbitClient
             $this->cache->save($cacheItem);
         }
 
-        $resultData = $cacheItem->get();
+        $result = $cacheItem->get();
         return new Orbit(
-            $resultData['head'],
-            $resultData['bodyFirst'],
-            $resultData['bodyLast']
+            $result['head'],
+            $result['bodyFirst'],
+            $result['bodyLast']
         );
     }
 
