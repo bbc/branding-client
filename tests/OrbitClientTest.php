@@ -4,7 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Orbit;
 use BBC\BrandingClient\OrbitClient;
-use Doctrine\Common\Cache\ArrayCache;
+use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class OrbitClientTest extends MultiGuzzleTestCase
 {
@@ -12,7 +12,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
 
     public function setUp()
     {
-        $this->cache = new ArrayCache();
+        $this->cache = new NullAdapter();
     }
 
     public function testConstructor()
@@ -173,14 +173,23 @@ class OrbitClientTest extends MultiGuzzleTestCase
     {
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
 
-        $cache = $this->createPartialMock('Doctrine\Common\Cache\ArrayCache', ['save']);
-        $cache->expects($this->once())->method('save')->with(
-            $this->anything(),
-            $this->anything(),
-            $this->equalTo($expectedCacheDuration)
-        );
+        $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
+                      ->disableOriginalClone()
+                      ->disableArgumentCloning()
+                      ->disallowMockingUnknownTypes()
+                      ->setMethods(['save'])
+                      ->getMock();
+
+        $cache->expects($this->once())->method('save')->with($this->callback(
+            function($cacheItemToSave) use ($expectedCacheDuration) {
+                $current = time() + $expectedCacheDuration;
+                $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
+                return true;
+            }
+        ));
 
         $orbitClient = new OrbitClient($client, $cache, $options);
+
         $orbitClient->getContent([]);
     }
 

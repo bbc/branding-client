@@ -4,7 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingClient;
-use Doctrine\Common\Cache\ArrayCache;
+use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class BrandingClientTest extends MultiGuzzleTestCase
 {
@@ -12,7 +12,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
     public function setUp()
     {
-        $this->cache = new ArrayCache();
+        $this->cache = new NullAdapter();
     }
 
     public function testConstructor()
@@ -156,13 +156,20 @@ class BrandingClientTest extends MultiGuzzleTestCase
     public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
+        $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
+              ->disableOriginalClone()
+              ->disableArgumentCloning()
+              ->disallowMockingUnknownTypes()
+              ->setMethods(['save'])
+              ->getMock();
 
-        $cache = $this->createPartialMock('Doctrine\Common\Cache\ArrayCache', ['save']);
-        $cache->expects($this->once())->method('save')->with(
-            $this->anything(),
-            $this->anything(),
-            $this->equalTo($expectedCacheDuration)
-        );
+        $cache->expects($this->once())->method('save')->with($this->callback(
+            function($cacheItemToSave) use ($expectedCacheDuration) {
+                $current = time() + $expectedCacheDuration;
+                $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
+                return true;
+            }
+        ));
 
         $brandingClient = new BrandingClient($client, $cache, $options);
         $brandingClient->getContent('br-123');
@@ -178,16 +185,16 @@ class BrandingClientTest extends MultiGuzzleTestCase
             ],
             [
                 [],
-                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
+                ['Date'=> 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
                 450
             ],
             // Need both otherwise use default
             [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
-            [[], ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
+            [[], ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
             // Prove explicitly setting a cacheTime in the options overrides all
             [
                 ['cacheTime' => 234],
-                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 234
             ],
         ];

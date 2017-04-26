@@ -3,13 +3,13 @@
 namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
-use Doctrine\Common\Cache\CacheProvider;
+use Psr\Cache\CacheItemPoolInterface;
 
 class OrbitStubClient extends OrbitClient
 {
     public function __construct(
         Client $client = null,
-        CacheProvider $cache = null,
+        CacheItemPoolInterface $cache = null,
         array $options = []
     ) {
     }

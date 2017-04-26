@@ -4,7 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingStubClient;
-use Doctrine\Common\Cache\ArrayCache;
+use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class BrandingStubClientTest extends MultiGuzzleTestCase
 {
@@ -32,7 +32,7 @@ class BrandingStubClientTest extends MultiGuzzleTestCase
     {
         $brandingClient = new BrandingStubClient(
             $this->getClient(),
-            new ArrayCache()
+            new NullAdapter()
         );
 
         $expectedBranding = new Branding(

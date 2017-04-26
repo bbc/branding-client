@@ -4,7 +4,8 @@ namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use Doctrine\Common\Cache\Cache;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\CacheItemInterface;
 use DateTime;
 
 class BrandingClient
@@ -27,7 +28,7 @@ class BrandingClient
     /** @var Client */
     private $client;
 
-    /** @var Cache */
+    /** @var CacheItemPoolInterface */
     private $cache;
 
     /**
@@ -46,7 +47,7 @@ class BrandingClient
 
     public function __construct(
         Client $client,
-        Cache $cache,
+        CacheItemPoolInterface $cache,
         array $options = []
     ) {
         $this->client = $client;
@@ -75,8 +76,9 @@ class BrandingClient
         $url = $this->getUrl($projectId, $themeVersionId);
         $cacheKey = 'BBC_BRANDING_' . md5($url);
 
-        $result = $this->cache->fetch($cacheKey);
-        if (!$result) {
+        /** @var CacheItemInterface $cacheItem */
+        $cacheItem = $this->cache->getItem($cacheKey);
+        if (!$cacheItem->isHit()) {
             try {
                 $response = $this->client->get($url, [
                     'headers' => ['Accept-Encoding' => 'gzip']
@@ -108,9 +110,12 @@ class BrandingClient
             }
 
             // cache the result
-            $this->cache->save($cacheKey, $result, $cacheTime);
+            $cacheItem->set($result);
+            $cacheItem->expiresAfter($cacheTime);
+            $this->cache->save($cacheItem);
         }
-        return $this->mapResultToBrandingObject($result);
+
+        return $this->mapResultToBrandingObject($cacheItem->get());
     }
 
     /**
