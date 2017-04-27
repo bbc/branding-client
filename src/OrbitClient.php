@@ -30,10 +30,12 @@ class OrbitClient
      *
      * env is the environment to point at. One of 'int', 'test' or 'live'
      * cacheTime is the number of seconds that the result should be stored
+     * mustache is the options array that should be passed to Mustache_Engine
      */
     private $options = [
         'env' => 'live',
         'cacheTime' => null,
+        'mustache' => [],
     ];
 
     public function __construct(
@@ -75,7 +77,7 @@ class OrbitClient
     {
         $url = $this->getUrl();
         $headers = $this->getRequestHeaders($requestParams);
-        $cacheKey = 'BBC_BRANDING_ORBIT_' . md5($url . json_encode($requestParams) . json_encode($templateParams));
+        $cacheKey = 'BBC_BRANDING_ORBIT_' . md5($url . json_encode($requestParams));
 
         /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);
@@ -92,8 +94,6 @@ class OrbitClient
             if (!$result || !isset($result['head'])) {
                 throw new OrbitException('Invalid Orbit Response. Response JSON object was invalid or malformed');
             }
-
-            $result = $this->renderOrbResponse($result, $templateParams);
 
             // Determine how long to cache for
             $cacheTime = self::FALLBACK_CACHE_DURATION;
@@ -122,11 +122,14 @@ class OrbitClient
             $this->cache->save($cacheItem);
         }
 
-        $result = $cacheItem->get();
+        $cachedResponse = $cacheItem->get();
+
+        $output = $this->renderOrbResponse($cachedResponse, $templateParams);
+
         return new Orbit(
-            $result['head'],
-            $result['bodyFirst'],
-            $result['bodyLast']
+            $output['head'],
+            $output['bodyFirst'],
+            $output['bodyLast']
         );
     }
 
@@ -184,7 +187,7 @@ class OrbitClient
         $orbitFields = ['head', 'bodyFirst', 'bodyLast'];
 
         if ($params) {
-            $mustache = new Mustache_Engine();
+            $mustache = new Mustache_Engine($this->options['mustache']);
             foreach ($orbitFields as $orbitField) {
                 $orbitItem[$orbitField] = $mustache->render(
                     $result[$orbitField]['template'],

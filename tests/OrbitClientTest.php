@@ -20,6 +20,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
         $expectedDefaultOptions = [
             'env' => 'live',
             'cacheTime' => null,
+            'mustache' => [],
         ];
 
         $orbitClient = new OrbitClient(
@@ -35,6 +36,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
         $options = [
             'env' => 'test',
             'cacheTime' => 10,
+            'mustache' => ['someconfig'],
         ];
 
         $orbitClient = new OrbitClient(
@@ -42,7 +44,6 @@ class OrbitClientTest extends MultiGuzzleTestCase
             $this->cache,
             $options
         );
-
 
         $this->assertEquals($options, $orbitClient->getOptions());
     }

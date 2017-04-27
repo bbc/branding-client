@@ -103,6 +103,8 @@ Valid $options keys to pass to the `OrbitClient` are:
 * `cacheTime`: By default the Client uses the cache control headers of the API
   response determine how long to cache for. To override this value set the
   `cacheTime` to a value in seconds.
+* `mustache`: An array of options to pass to the `Mustache_Engine` such as `cache`.
+   Check the [Mustache Wiki for available options](https://github.com/bobthecow/mustache.php/wiki#constructor-options).
 
 ### Branding Object
 
