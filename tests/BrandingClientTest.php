@@ -164,7 +164,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
               ->getMock();
 
         $cache->expects($this->once())->method('save')->with($this->callback(
-            function($cacheItemToSave) use ($expectedCacheDuration) {
+            function ($cacheItemToSave) use ($expectedCacheDuration) {
                 $current = time() + $expectedCacheDuration;
                 $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
                 return true;
