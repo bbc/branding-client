@@ -98,15 +98,15 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
         return [
             [['env' => 'live'], ['br-123'], $livePrefix . '/branding/live/projects/br-123.json'],
-            [['env' => 'test'], ['br-456'],  $devPrefix . '/branding/test/projects/br-456.json'],
-            [['env' => 'int'], ['br-789'],  $devPrefix . '/branding/int/projects/br-789.json'],
+            [['env' => 'test'], ['br-456'], $devPrefix . '/branding/test/projects/br-456.json'],
+            [['env' => 'int'], ['br-789'], $devPrefix . '/branding/int/projects/br-789.json'],
             // With an explicitly Null themeVersionId
             [['env' => 'live'], ['br-123', null], $livePrefix . '/branding/live/projects/br-123.json'],
-            [['env' => 'test'], ['br-456', null],  $devPrefix . '/branding/test/projects/br-456.json'],
+            [['env' => 'test'], ['br-456', null], $devPrefix . '/branding/test/projects/br-456.json'],
             // With a themeVersionId should call the preview URL
             [['env' => 'live'], ['br-123', '456'], $livePrefix . '/branding/live/previews/456.json'],
-            [['env' => 'test'], ['br-456', '789'],  $devPrefix . '/branding/test/previews/789.json'],
-            [['env' => 'int'], ['br-789', '123'],  $devPrefix . '/branding/int/previews/123.json'],
+            [['env' => 'test'], ['br-456', '789'], $devPrefix . '/branding/test/previews/789.json'],
+            [['env' => 'int'], ['br-789', '123'], $devPrefix . '/branding/int/previews/123.json'],
         ];
     }
 
@@ -157,14 +157,14 @@ class BrandingClientTest extends MultiGuzzleTestCase
     {
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
         $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
-              ->disableOriginalClone()
-              ->disableArgumentCloning()
-              ->disallowMockingUnknownTypes()
-              ->setMethods(['save'])
-              ->getMock();
+            ->disableOriginalClone()
+            ->disableArgumentCloning()
+            ->disallowMockingUnknownTypes()
+            ->setMethods(['save'])
+            ->getMock();
 
         $cache->expects($this->once())->method('save')->with($this->callback(
-            function($cacheItemToSave) use ($expectedCacheDuration) {
+            function ($cacheItemToSave) use ($expectedCacheDuration) {
                 $current = time() + $expectedCacheDuration;
                 $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
                 return true;
@@ -178,24 +178,47 @@ class BrandingClientTest extends MultiGuzzleTestCase
     public function cachingTimesDataProvider()
     {
         return [
-            [
+            'date and expires are set' => [
                 [],
                 ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
                 60
             ],
-            [
+            'date and expires are set different values' => [
                 [],
-                ['Date'=> 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
+                ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:18:00 GMT'],
                 450
             ],
             // Need both otherwise use default
-            [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
-            [[], ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
+            'only expires is set' => [[], ['Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'], 1800],
+            'only date is set' => [[], ['Date' => 'Thu, 13 Oct 2016 16:10:30 GMT'], 1800],
             // Prove explicitly setting a cacheTime in the options overrides all
-            [
+            'cacheTime takes precedents' => [
                 ['cacheTime' => 234],
-                ['Date'    => 'Thu, 13 Oct 2016 16:10:30 GMT', 'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT'],
+                [
+                    'Date' => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                    'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT',
+                    'Cache-Control' => 'max-age=130',
+                ],
                 234
+            ],
+            'max-age by itself' => [
+                [],
+                ['Cache-Control' => 'max-age=120'],
+                120
+            ],
+            'max-age takes precedents over date and expires' => [
+                [],
+                [
+                    'Cache-Control' => 'max-age=130',
+                    'Date' => 'Thu, 13 Oct 2016 16:10:30 GMT',
+                    'Expires' => 'Thu, 13 Oct 2016 16:11:30 GMT',
+                ],
+                130
+            ],
+            'Cache-Control exists without max-age' => [
+                [],
+                ['Cache-Control' => 'non-legit'],
+                1800
             ],
         ];
     }

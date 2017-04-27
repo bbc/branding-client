@@ -4,6 +4,7 @@ namespace BBC\BrandingClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use function GuzzleHttp\Psr7\parse_header;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\CacheItemInterface;
 use DateTime;
@@ -97,15 +98,19 @@ class BrandingClient
             if ($this->options['cacheTime']) {
                 $cacheTime = $this->options['cacheTime'];
             } else {
-                $expiryDate = $this->getDateFromHeader($response, 'Expires');
-                $currentDate = $this->getDateFromHeader($response, 'Date');
-
-                if ($currentDate && $expiryDate) {
-                    // Beware of a cache time of 0 as 0 is treated by Doctrine
-                    // Cache as "Cache for an infinite time" which is very much
-                    // not what we want. -1 will be treated as already expired
-                    $cacheTime = $expiryDate->getTimestamp() - $currentDate->getTimestamp();
-                    $cacheTime = ($cacheTime > 0 ? $cacheTime : -1);
+                $cacheControl = $response->getHeaderLine('cache-control');
+                if (isset(parse_header($cacheControl)[0]['max-age'])) {
+                    $cacheTime = (int)parse_header($cacheControl)[0]['max-age'];
+                } else {
+                    $expiryDate = $this->getDateFromHeader($response, 'Expires');
+                    $currentDate = $this->getDateFromHeader($response, 'Date');
+                    if ($currentDate && $expiryDate) {
+                        // Beware of a cache time of 0 as 0 is treated by Doctrine
+                        // Cache as "Cache for an infinite time" which is very much
+                        // not what we want. -1 will be treated as already expired
+                        $cacheTime = $expiryDate->getTimestamp() - $currentDate->getTimestamp();
+                        $cacheTime = ($cacheTime > 0 ? $cacheTime : -1);
+                    }
                 }
             }
 
