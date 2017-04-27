@@ -26,7 +26,7 @@ dependency.
         }
     ],
     "require": {
-        "bbc/branding-client": "^1.3"
+        "bbc/branding-client": "^2.0"
     }
 }
 ```
@@ -40,7 +40,7 @@ to the call to the Orbit webservice along with blocks of HTML that should be
 injected into your page layout.
 
 Create a BrandingClient, passing in an instance of `GuzzleHttp\Client`, an
-implementation of `Doctrine\Common\Cache`, and optionally an options array. Then
+implementation of `Psr\Cache\CacheItemPoolInterface`, and optionally an options array. Then
 call `getContent()` to make a request and return a `Branding` domain model.
 
 After that make a call to the OrbitClient, passing in the Variant and Language
@@ -54,8 +54,9 @@ want to support previewing not-yet-published themes.
 
 ```php
 $httpClient = new \GuzzleHttp\Client();
-$cache = new \Doctrine\Common\Cache\ArrayCache();
+$cache = new \Symfony\Component\Cache\Adapter\ArrayAdapter();
 $brandingOptions = [];
+$orbitOptions = [];
 $projectId = 'br-0001';
 $themeVersionId = null;
 // If you want to support the preview query strings suggested by the Branding
@@ -144,6 +145,6 @@ License
 -------
 
 This repository is available under the terms of the Apache 2.0 license.
-View the LICENSE file in the for more information.
+View the [LICENSE file](LICENSE) for more information.
 
 Copyright (c) 2017 BBC
