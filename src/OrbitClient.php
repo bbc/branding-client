@@ -65,9 +65,9 @@ class OrbitClient
     }
 
     /**
-     * @param requestParams Parameters that are passed to the HTTP call
+     * @param array $requestParams Parameters that are passed to the HTTP call
      *   `language` and `variant` are the main two
-     * @param requestParams Parameters that are passed to the Orbit template output
+     * @param array $templateParams Parameters that are passed to the Orbit template output
      * @throws OrbitException if the call failed or the response is invalid
      * @return Orbit object that contains items to inject into your templates
      *

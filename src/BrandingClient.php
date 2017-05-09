@@ -2,12 +2,12 @@
 
 namespace BBC\BrandingClient;
 
+use DateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use function GuzzleHttp\Psr7\parse_header;
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\CacheItemInterface;
-use DateTime;
+use Psr\Cache\CacheItemPoolInterface;
+use function GuzzleHttp\Psr7\parse_header;
 
 class BrandingClient
 {

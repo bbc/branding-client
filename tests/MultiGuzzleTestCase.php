@@ -2,6 +2,11 @@
 
 namespace Tests\BBC\BrandingClient;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 
 abstract class MultiGuzzleTestCase extends TestCase
@@ -9,15 +14,15 @@ abstract class MultiGuzzleTestCase extends TestCase
     protected function getClient(array $mockResponses = [], &$historyContainer = null)
     {
         // Mock Requests
-        $mockHandler = new \GuzzleHttp\Handler\MockHandler($mockResponses);
-        $handler = \GuzzleHttp\HandlerStack::create($mockHandler);
+        $mockHandler = new MockHandler($mockResponses);
+        $handler = HandlerStack::create($mockHandler);
 
         // History
         if (!is_null($historyContainer)) {
-            $handler->push(\GuzzleHttp\Middleware::history($historyContainer));
+            $handler->push(Middleware::history($historyContainer));
         }
 
-        return new \GuzzleHttp\Client(['handler' => $handler]);
+        return new Client(['handler' => $handler]);
     }
 
     protected function getHistoryContainer()
@@ -28,7 +33,7 @@ abstract class MultiGuzzleTestCase extends TestCase
     protected function mockResponse($responseStatus, $responseHeaders, $responseBody)
     {
         // Guzzle 6 object
-        return new \GuzzleHttp\Psr7\Response(
+        return new Response(
             $responseStatus,
             $responseHeaders,
             $responseBody
