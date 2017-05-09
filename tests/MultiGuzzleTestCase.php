@@ -2,9 +2,9 @@
 
 namespace Tests\BBC\BrandingClient;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 
-abstract class MultiGuzzleTestCase extends PHPUnit_Framework_TestCase
+abstract class MultiGuzzleTestCase extends TestCase
 {
     protected function getClient(array $mockResponses = [], &$historyContainer = null)
     {

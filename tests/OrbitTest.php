@@ -3,9 +3,9 @@
 namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Orbit;
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 
-class OrbitTest extends PHPUnit_Framework_TestCase
+class OrbitTest extends TestCase
 {
     public function testConstructor()
     {

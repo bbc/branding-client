@@ -3,9 +3,9 @@
 namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 
-class BrandingTest extends PHPUnit_Framework_TestCase
+class BrandingTest extends TestCase
 {
     public function testConstructor()
     {
