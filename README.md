@@ -80,7 +80,7 @@ $orbitClient = new \BBC\BrandingClient\OrbitClient(
 
 $orb = $orbitClient->getContent([
     'variant' => $branding->getOrbitVariant(),
-    'language' => $branding->getOrbitLanguage(),
+    'language' => $branding->getLanguage(),
 ], [
     'searchScope' => $branding->getOrbitSearchScope(),
     // Any additional template replacements you need to pass to Orbit

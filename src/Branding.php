@@ -14,6 +14,18 @@ class Branding
 
     private $options;
 
+    /**
+     * For historic reasons I don't understand, The language parts in options
+     * are underscore-delimited (e.g. cy_GB). However RFC 5646 defines that
+     * languages be hyphen-delimited (e.g. cy-GB). The RFC 5646 representation
+     * is used for the lang attribute in HTML and when defining the Orbit
+     * language. To save having to construct the rfc-compliant format multiple
+     * times use a cached version.
+     *
+     * See https://tools.ietf.org/html/rfc5646
+     */
+    private $rfcLanguage;
+
     public function __construct(
         $head,
         $bodyFirst,
@@ -53,6 +65,8 @@ class Branding
         if (!array_key_exists('orb_footer_text', $this->options)) {
             $this->options['orb_footer_text'] = 'light';
         }
+
+        $this->rfcLanguage = str_replace('_', '-', $this->options['language']);
     }
 
     /**
@@ -100,9 +114,17 @@ class Branding
         return $this->options;
     }
 
+    public function getLanguage()
+    {
+        return $this->rfcLanguage;
+    }
+
+    /**
+     * @deprecated Use getLanguage instead
+     */
     public function getOrbitLanguage()
     {
-        return $this->options['language'];
+        return $this->rfcLanguage;
     }
 
     public function getOrbitVariant()

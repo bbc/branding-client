@@ -31,7 +31,8 @@ class BrandingTest extends TestCase
         $this->assertEquals('bodyLast', $branding->getBodyLast());
         $this->assertEquals($expectedColours, $branding->getColours());
         $this->assertEquals($expectedOptions, $branding->getOptions());
-        $this->assertEquals('en_GB', $branding->getOrbitLanguage());
+        $this->assertEquals('en-GB', $branding->getOrbitLanguage());
+        $this->assertEquals('en-GB', $branding->getLanguage());
         $this->assertEquals('default', $branding->getOrbitVariant());
         $this->assertEquals(null, $branding->getOrbitSearchScope());
         $this->assertEquals(
