@@ -5,11 +5,9 @@ A PHP library to load the Branding and Orbit Webservices and cache them for a
 short period. These two webservices are used together to provide a content
 skeleton for BBC pages hosed outside of the Forge platform.
 
-Eventually Orbit content shall be included within the Branding Webservice's
-output, however currently Orbit does not support all the languages Branding
-requires to support. Using Orbit with branding is acceptable if you can be
-confident that you do not need any World Service languages and you only need to
-support English, Welsh, Irish Gaelic and Scots Gaelic.
+Eventually Orbit content may be included within the Branding Webservice's
+output, but we have not yet considered the benefits and trade-offs of that just
+yet.
 
 Installation
 -------------
