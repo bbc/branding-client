@@ -15,13 +15,15 @@ class Branding
     private $options;
 
     /**
-     * For historic reasons I don't understand, The language parts in options
-     * are underscore-delimited (e.g. cy_GB). However RFC 5646 defines that
-     * languages be hyphen-delimited (e.g. cy-GB). The RFC 5646 representation
-     * is used for the lang attribute in HTML and when defining the Orbit
-     * language. To save having to construct the rfc-compliant format multiple
-     * times use a cached version.
+     * The language in options is a Locale identifier as specified by ISO 15897.
+     * This means it is underscore-delimited (e.g. cy_GB). This format is used
+     * for Symfony translations.
+     * Meanwhile RFC 5646 defines that languages be hyphen-delimited
+     * (e.g. cy-GB). The RFC 5646 representation is used for the lang attribute
+     * in HTML and when defining the Orbit language. To save having to construct
+     * the RFC format multiple times store a cached version.
      *
+     * See http://www.open-std.org/jtc1/sc22/wg20/docs/n610.pdf
      * See https://tools.ietf.org/html/rfc5646
      */
     private $rfcLanguage;
@@ -114,9 +116,23 @@ class Branding
         return $this->options;
     }
 
+    /**
+     * Language is hyphen delimited, as per RFC 5646. Use language when defining
+     * languages in HTTP/HTML such as when passing a language to Orbit using the
+     * Accept-Language header or specifying the lang attribute in HTML.
+     */
     public function getLanguage()
     {
         return $this->rfcLanguage;
+    }
+
+    /**
+     * Local is underscore delimited, as per ISO15897. Use locale when defining
+     * Symfony translate languages and with rmp-translate.
+     */
+    public function getLocale()
+    {
+        $this->options['language'];
     }
 
     /**
