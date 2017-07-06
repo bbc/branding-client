@@ -132,7 +132,7 @@ class Branding
      */
     public function getLocale()
     {
-        $this->options['language'];
+        return $this->options['language'];
     }
 
     /**

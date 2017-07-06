@@ -33,6 +33,7 @@ class BrandingTest extends TestCase
         $this->assertEquals($expectedOptions, $branding->getOptions());
         $this->assertEquals('en-GB', $branding->getOrbitLanguage());
         $this->assertEquals('en-GB', $branding->getLanguage());
+        $this->assertEquals('en_GB', $branding->getLocale());
         $this->assertEquals('default', $branding->getOrbitVariant());
         $this->assertEquals(null, $branding->getOrbitSearchScope());
         $this->assertEquals(
