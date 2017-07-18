@@ -204,4 +204,23 @@ class Branding
             $footerLookup[$this->options['orb_footer']]
         );
     }
+
+    /**
+     * A utility function for building a Navigation item for use when
+     * applications that consume branding wish to replace the navigation
+     * placeholder with a set of their own nav items.
+     * Eventually the template string for this should be provided by the options
+     * of a given branding so that this html template is only specified once
+     * within in the BrandingTool, rather than having it there and then
+     * duplicating it here too.
+     */
+    public function buildNavItem($text, $href, $linktrack)
+    {
+        return sprintf(
+            '<li class="br-nav__item"><a class="br-nav__link" href="%2$s" data-linktrack="%3$s">%1$s</a></li>',
+            $text,
+            $href,
+            $linktrack
+        );
+    }
 }

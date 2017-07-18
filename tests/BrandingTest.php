@@ -40,6 +40,11 @@ class BrandingTest extends TestCase
             'b-header--black--white b-footer--black--white',
             $branding->getOrbitThemeClasses()
         );
+
+        $this->assertEquals(
+            '<li class="br-nav__item"><a class="br-nav__link" href="/foo" data-linktrack="tracking">text</a></li>',
+            $branding->buildNavItem('text', '/foo', 'tracking')
+        );
     }
 
     /**
