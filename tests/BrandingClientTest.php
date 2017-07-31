@@ -19,6 +19,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
     {
         $expectedDefaultOptions = [
             'env' => 'live',
+            'cacheKeyPrefix' => 'branding',
             'cacheTime' => null,
         ];
 
@@ -34,6 +35,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
     {
         $options = [
             'env' => 'test',
+            'cacheKeyPrefix' => 'branding.123',
             'cacheTime' => 10,
         ];
 
@@ -155,6 +157,8 @@ class BrandingClientTest extends MultiGuzzleTestCase
      */
     public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
+        $expectedKey = 'branding.b22b2e21ce267c3879b21fd96939bfd3';
+
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
         $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
             ->disableOriginalClone()
@@ -164,8 +168,9 @@ class BrandingClientTest extends MultiGuzzleTestCase
             ->getMock();
 
         $cache->expects($this->once())->method('save')->with($this->callback(
-            function ($cacheItemToSave) use ($expectedCacheDuration) {
+            function ($cacheItemToSave) use ($expectedKey, $expectedCacheDuration) {
                 $current = time() + $expectedCacheDuration;
+                $this->assertEquals($expectedKey, $cacheItemToSave->getKey());
                 $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
                 return true;
             }

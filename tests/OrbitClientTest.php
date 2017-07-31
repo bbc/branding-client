@@ -19,6 +19,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
     {
         $expectedDefaultOptions = [
             'env' => 'live',
+            'cacheKeyPrefix' => 'orbit',
             'cacheTime' => null,
             'mustache' => [],
         ];
@@ -35,6 +36,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
     {
         $options = [
             'env' => 'test',
+            'cacheKeyPrefix' => 'orbit.123',
             'cacheTime' => 10,
             'mustache' => ['someconfig'],
         ];
@@ -174,6 +176,8 @@ class OrbitClientTest extends MultiGuzzleTestCase
      */
     public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
+        $expectedKey = 'orbit.5617e91c21636eb642dbeabcfb06342c';
+
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
 
         $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
@@ -184,8 +188,9 @@ class OrbitClientTest extends MultiGuzzleTestCase
             ->getMock();
 
         $cache->expects($this->once())->method('save')->with($this->callback(
-            function ($cacheItemToSave) use ($expectedCacheDuration) {
+            function ($cacheItemToSave) use ($expectedKey, $expectedCacheDuration) {
                 $current = time() + $expectedCacheDuration;
+                $this->assertEquals($expectedKey, $cacheItemToSave->getKey());
                 $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
                 return true;
             }

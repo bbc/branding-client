@@ -43,6 +43,7 @@ class BrandingClient
      */
     private $options = [
         'env' => 'live',
+        'cacheKeyPrefix' => 'branding',
         'cacheTime' => null,
     ];
 
@@ -75,7 +76,7 @@ class BrandingClient
     public function getContent($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheKey = 'BBC_BRANDING_' . md5($url);
+        $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url);
 
         /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);

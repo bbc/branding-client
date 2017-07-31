@@ -91,6 +91,8 @@ Valid $options keys to pass to the `BrandingClient` are:
 
 * `env`: To set an environment to request Branding from. Must be one of
   'live', 'test' or 'int'. If omitted, shall default to 'live'.
+* `cacheKeyPrefix`: A prefix to use for the cache key. If omitted, shall default
+  to 'branding'.
 * `cacheTime`: By default the Client uses the cache control headers of the API
   response determine how long to cache for. To override this value set the
   `cacheTime` to a value in seconds.
@@ -99,6 +101,8 @@ Valid $options keys to pass to the `OrbitClient` are:
 
 * `env`: To set an environment to request Orbit from. Must be one of
   'live', 'test' or 'int'. If omitted, shall default to 'live'.
+* `cacheKeyPrefix`: A prefix to use for the cache key. If omitted, shall default
+  to 'orbit'.
 * `cacheTime`: By default the Client uses the cache control headers of the API
   response determine how long to cache for. To override this value set the
   `cacheTime` to a value in seconds.

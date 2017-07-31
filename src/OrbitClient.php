@@ -34,6 +34,7 @@ class OrbitClient
      */
     private $options = [
         'env' => 'live',
+        'cacheKeyPrefix' => 'orbit',
         'cacheTime' => null,
         'mustache' => [],
     ];
@@ -77,7 +78,7 @@ class OrbitClient
     {
         $url = $this->getUrl();
         $headers = $this->getRequestHeaders($requestParams);
-        $cacheKey = 'BBC_BRANDING_ORBIT_' . md5($url . json_encode($requestParams));
+        $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url . json_encode($requestParams));
 
         /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);
