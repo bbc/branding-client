@@ -13,7 +13,8 @@ class OrbitStubClientTest extends MultiGuzzleTestCase
         $orbitClient = new OrbitStubClient();
 
         $expectedOrbit = new Orbit(
-            '<orbit-head/>',
+            '<orbit-head><orbit-request-params data-values="[]"/>' .
+                    '<orbit-template-params data-values="[]"/></orbit-head>',
             '<orbit-bodyfirst/>',
             '<orbit-bodylast/>'
         );
@@ -29,11 +30,43 @@ class OrbitStubClientTest extends MultiGuzzleTestCase
         );
 
         $expectedOrbit = new Orbit(
-            '<orbit-head/>',
+            '<orbit-head><orbit-request-params data-values="[]"/>' .
+                    '<orbit-template-params data-values="[]"/></orbit-head>',
             '<orbit-bodyfirst/>',
             '<orbit-bodylast/>'
         );
 
         $this->assertEquals($expectedOrbit, $orbitClient->getContent());
+    }
+
+    public function testGetContentWithTemplateParameters()
+    {
+        $orbitClient = new OrbitStubClient();
+
+        $expectedOrbit = new Orbit(
+            '<orbit-head><orbit-request-params data-values="[]"/><orbit-template-params data-values=' .
+                    '"{&quot;testKey&quot;:&quot;testValue&quot;}"/></orbit-head>',
+            '<orbit-bodyfirst/>',
+            '<orbit-bodylast/>'
+        );
+
+        $this->assertEquals($expectedOrbit, $orbitClient->getContent([], ['testKey' => 'testValue']));
+    }
+
+    public function testGetContentWithRequestParameters()
+    {
+        $orbitClient = new OrbitStubClient();
+
+        $expectedOrbit = new Orbit(
+            '<orbit-head><orbit-request-params data-values="{&quot;Accept-Encoding&quot;:&quot;gzip&quot;}"/>' .
+                    '<orbit-template-params data-values="[]"/></orbit-head>',
+            '<orbit-bodyfirst/>',
+            '<orbit-bodylast/>'
+        );
+
+        $this->assertEquals(
+            $expectedOrbit,
+            $orbitClient->getContent(['Accept-Encoding' => 'gzip'])
+        );
     }
 }
