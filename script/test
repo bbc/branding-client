@@ -1,2 +1,3 @@
 vendor/bin/phpunit
 vendor/bin/phpcs
+vendor/bin/phpstan analyse -c phpstan.neon src tests --level=7

@@ -1,0 +1,12 @@
+parameters:
+    ignoreErrors:
+        # Branding stub client
+        - '#BBC\\BrandingClient\\BrandingStubClient::__construct\(\) does not call parent constructor from BBC\\BrandingClient\\BrandingClient#'
+        - '#Constructor of class BBC\\BrandingClient\\BrandingStubClient has an unused parameter \$[a-zA-Z0-9\\_]#'
+
+        # Orbit stub client
+        - '#BBC\\BrandingClient\\OrbitStubClient::__construct\(\) does not call parent constructor from BBC\\BrandingClient\\OrbitClient#'
+        - '#Constructor of class BBC\\BrandingClient\\OrbitStubClient has an unused parameter \$[a-zA-Z0-9\\_]#'
+
+        # Mocks
+        - '#Parameter .* of class .* expects .*, PHPUnit_Framework_MockObject_MockObject given#'
