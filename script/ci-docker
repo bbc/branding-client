@@ -30,4 +30,7 @@ vendor/bin/phpunit || RESULT=1
 # Run PHPCS
 vendor/bin/phpcs --report=checkstyle --report-file=build/reports/checkstyle.xml || RESULT=1
 
+# Run PHPStan
+vendor/bin/phpstan -c phpstan.neon --level=7
+
 exit $RESULT
