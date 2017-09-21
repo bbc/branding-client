@@ -4,6 +4,9 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingClient;
+use GuzzleHttp\Client;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class BrandingClientTest extends MultiGuzzleTestCase
@@ -226,6 +229,33 @@ class BrandingClientTest extends MultiGuzzleTestCase
                 1800
             ],
         ];
+    }
+
+    public function testFlushCacheRefreshItem()
+    {
+        $cacheItemInterface = $this->createMock(CacheItemInterface::class);
+        $cacheItemInterface->method('isHit')->willReturn(true);
+        $cacheItemInterface->method('get')->willReturn(
+            ['head' => '', 'bodyFirst' => '', 'bodyLast' => '', 'colours' => [], 'options' => []]
+        );
+
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willReturn($cacheItemInterface);
+
+        $brandingClient = new BrandingClient(
+            $this->createMock(Client::class),
+            $cache
+        );
+
+        // test if deleteItem is call when setFlushCacheItems is set to true
+        $brandingClient->setFlushCacheItems(true);
+        $cache->expects($this->once())->method('deleteItem');
+        $brandingClient->getContent('');
+
+        // test if deleteItem is not call when setFlushCacheItems is set to false
+        $brandingClient->setFlushCacheItems(false);
+        $cache->expects($this->never())->method('deleteItem');
+        $brandingClient->getContent('');
     }
 
     private function mockSuccessfulJsonResponse(array $headers = [])

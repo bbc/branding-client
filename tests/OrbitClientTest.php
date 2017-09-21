@@ -4,6 +4,9 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Orbit;
 use BBC\BrandingClient\OrbitClient;
+use GuzzleHttp\Client;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class OrbitClientTest extends MultiGuzzleTestCase
@@ -247,6 +250,40 @@ class OrbitClientTest extends MultiGuzzleTestCase
                 1800
             ],
         ];
+    }
+
+    public function testFlushCacheRefreshItem()
+    {
+        $cacheItemInterface = $this->createMock(CacheItemInterface::class);
+        $cacheItemInterface->method('isHit')->willReturn(true);
+        $cacheItemInterface->method('get')->willReturn(
+            [
+                '@context' => [],
+                '@type' => '',
+                '@id' => '',
+                'head' => ['template' => '', 'html' => ''],
+                'bodyFirst' => ['template' => '', 'html' => ''],
+                'bodyLast' => ['template' => '', 'html' => ''],
+            ]
+        );
+
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willReturn($cacheItemInterface);
+
+        $orbitClient = new OrbitClient(
+            $this->createMock(Client::class),
+            $cache
+        );
+
+        // test if deleteItem is call when setFlushCacheItems is set to true
+        $orbitClient->setFlushCacheItems(true);
+        $cache->expects($this->once())->method('deleteItem');
+        $orbitClient->getContent();
+
+        // test if deleteItem is not call when setFlushCacheItems is set to false
+        $orbitClient->setFlushCacheItems(false);
+        $cache->expects($this->never())->method('deleteItem');
+        $orbitClient->getContent();
     }
 
     private function mockSuccessfulJsonResponse(array $headers = [])

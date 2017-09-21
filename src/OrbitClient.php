@@ -25,6 +25,9 @@ class OrbitClient
     /** @var CacheItemPoolInterface */
     private $cache;
 
+    /** @var bool */
+    private $flushCacheItems = false;
+
     /**
      * @var array
      *
@@ -80,6 +83,9 @@ class OrbitClient
         $headers = $this->getRequestHeaders($requestParams);
         $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url . json_encode($requestParams));
 
+        if ($this->flushCacheItems) {
+            $this->cache->deleteItem($cacheKey);
+        }
         /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);
         if (!$cacheItem->isHit()) {
@@ -142,6 +148,11 @@ class OrbitClient
     public function getOptions()
     {
         return $this->options;
+    }
+
+    public function setFlushCacheItems(bool $flushCacheItems): void
+    {
+        $this->flushCacheItems = $flushCacheItems;
     }
 
     /**
