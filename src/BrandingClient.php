@@ -32,6 +32,9 @@ class BrandingClient
     /** @var CacheItemPoolInterface */
     private $cache;
 
+    /** @var bool */
+    private $flushCacheItems = false;
+
     /**
      * @var array
      *
@@ -78,6 +81,9 @@ class BrandingClient
         $url = $this->getUrl($projectId, $themeVersionId);
         $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url);
 
+        if ($this->flushCacheItems) {
+            $this->cache->deleteItem($cacheKey);
+        }
         /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);
         if (!$cacheItem->isHit()) {
@@ -132,6 +138,11 @@ class BrandingClient
     public function getOptions()
     {
         return $this->options;
+    }
+
+    public function setFlushCacheItems(bool $flushCacheItems): void
+    {
+        $this->flushCacheItems = $flushCacheItems;
     }
 
     private function mapResultToBrandingObject(array $branding)
