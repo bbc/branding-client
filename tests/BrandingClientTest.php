@@ -144,7 +144,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
         $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
 
         $brandingClient = new BrandingClient($client, $this->cache);
-        $promise = $brandingClient->getContentPromise('br-123');
+        $promise = $brandingClient->getContentAsync('br-123');
         $this->assertEquals($expectedContent, $promise->wait(true));
     }
 
@@ -169,7 +169,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
         $client = $this->getClient([$this->mockInvalidJsonResponse()]);
 
         $brandingClient = new BrandingClient($client, $this->cache);
-        $promise = $brandingClient->getContentPromise('br-123');
+        $promise = $brandingClient->getContentAsync('br-123');
         $promise->wait(true);
     }
 

@@ -98,7 +98,7 @@ class BrandingClient
         return $this->mapResultToBrandingObject($result);
     }
 
-    public function getContentPromise($projectId, $themeVersionId = null)
+    public function getContentAsync($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
         $cacheItem = $this->fetchCacheItem($url);
