@@ -131,6 +131,23 @@ class BrandingClientTest extends MultiGuzzleTestCase
         $this->assertEquals($expectedContent, $brandingClient->getContent('br-123'));
     }
 
+    public function testGetContentPromiseReturnsBrandingObject()
+    {
+        $expectedContent = new Branding(
+            'headContent',
+            'bodyFirstContent',
+            'bodyLastContent',
+            ['body' => ['bg' => '#eeeeee']],
+            ['language' => 'en']
+        );
+
+        $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
+
+        $brandingClient = new BrandingClient($client, $this->cache);
+        $promise = $brandingClient->getContentAsync('br-123');
+        $this->assertEquals($expectedContent, $promise->wait(true));
+    }
+
     /**
      * @expectedException BBC\BrandingClient\BrandingException
      * @expectedExceptionMessage Invalid Branding Response. Could not get data from webservice
@@ -141,6 +158,19 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
         $brandingClient = new BrandingClient($client, $this->cache);
         $brandingClient->getContent('br-123');
+    }
+
+    /**
+     * @expectedException BBC\BrandingClient\BrandingException
+     * @expectedExceptionMessage Invalid Branding Response. Could not get data from webservice
+     */
+    public function testInvalidContentThrowsExceptionWhenPromiseResolved()
+    {
+        $client = $this->getClient([$this->mockInvalidJsonResponse()]);
+
+        $brandingClient = new BrandingClient($client, $this->cache);
+        $promise = $brandingClient->getContentAsync('br-123');
+        $promise->wait(true);
     }
 
     /**
