@@ -25,6 +25,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
             'cacheKeyPrefix' => 'orbit',
             'cacheTime' => null,
             'mustache' => [],
+            'useCloudIdcta' => false,
         ];
 
         $orbitClient = new OrbitClient(
@@ -42,6 +43,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
             'cacheKeyPrefix' => 'orbit.123',
             'cacheTime' => 10,
             'mustache' => ['someconfig'],
+            'useCloudIdcta' => true,
         ];
 
         $orbitClient = new OrbitClient(
@@ -117,6 +119,11 @@ class OrbitClientTest extends MultiGuzzleTestCase
                     'Accept-Language' => ['cy_CY'],
                 ]
             ],
+
+            // With cloud idcta option set to true
+            [['env' => 'live', 'useCloudIdcta' => true], [], 'https://navigation.api.bbci.co.uk/api', [
+                'X-Feature' => ['akamai-idcta'],
+            ]],
         ];
     }
 

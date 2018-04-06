@@ -34,12 +34,15 @@ class OrbitClient
      * env is the environment to point at. One of 'int', 'test' or 'live'
      * cacheTime is the number of seconds that the result should be stored
      * mustache is the options array that should be passed to Mustache_Engine
+     * useCloudIdcta is a flag indicating whether requests to navigation.<env>.bbc.co.uk should include X-Feature header
+     *   (see https://confluence.dev.bbc.co.uk/pages/viewpage.action?pageId=117803057)
      */
     private $options = [
         'env' => 'live',
         'cacheKeyPrefix' => 'orbit',
         'cacheTime' => null,
         'mustache' => [],
+        'useCloudIdcta' => false,
     ];
 
     public function __construct(
@@ -179,12 +182,16 @@ class OrbitClient
      */
     private function getRequestHeaders(array $options)
     {
-        return [
+        $headers = [
             'Accept' => 'application/ld+json',
             'Accept-Encoding' => 'gzip',
             'Accept-Language' => isset($options['language']) ? $options['language'] : 'en',
             'X-Orb-Variant' => isset($options['variant']) ? $options['variant'] : 'default',
         ];
+        if ($this->options['useCloudIdcta']) {
+            $headers['X-Feature'] = 'akamai-idcta';
+        }
+        return $headers;
     }
 
     /**
