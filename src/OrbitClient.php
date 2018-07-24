@@ -17,7 +17,7 @@ class OrbitClient
 
     const ORBIT_WEBSERVICE_URL = 'https://navigation.{env}api.bbci.co.uk/api';
 
-    const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
+    const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'stage', 'live'];
 
     /** @var Client */
     private $client;
