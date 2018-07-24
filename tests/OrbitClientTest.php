@@ -4,6 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Orbit;
 use BBC\BrandingClient\OrbitClient;
+use BBC\BrandingClient\OrbitException;
 use GuzzleHttp\Client;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
@@ -55,12 +56,12 @@ class OrbitClientTest extends MultiGuzzleTestCase
         $this->assertEquals($options, $orbitClient->getOptions());
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\OrbitException
-     * @expectedExceptionMessage Invalid environment supplied, expected one of "int, test, live" but got "garbage"
-     */
     public function testInvalidEnvThrowsException()
     {
+        $this->expectException(OrbitException::class);
+        $this->expectExceptionMessage(
+            'Invalid environment supplied, expected one of "int, test, stage, live" but got "garbage"'
+        );
         new OrbitClient(
             $this->getClient(),
             $this->cache,
