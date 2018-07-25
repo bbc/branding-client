@@ -31,7 +31,7 @@ class OrbitClient
     /**
      * @var array
      *
-     * env is the environment to point at. One of 'int', 'test' or 'live'
+     * env is the environment to point at. One of 'int', 'test', 'stage' or 'live'
      * cacheTime is the number of seconds that the result should be stored
      * mustache is the options array that should be passed to Mustache_Engine
      * useCloudIdcta is a flag indicating whether requests to navigation.<env>.bbc.co.uk should include X-Feature header
@@ -168,8 +168,12 @@ class OrbitClient
     {
         $env = '';
 
-        if ($this->options['env'] != 'live') {
-            $env = $this->options['env'] . '.';
+        if ($this->options['env'] !== 'live') {
+            if ($this->options['env'] === 'stage') {
+                $env = 'test.'; // There is no stage. Use test and send the x-forge-environment header
+            } else {
+                $env = $this->options['env'] . '.';
+            }
         }
 
         return str_replace('{env}', $env, self::ORBIT_WEBSERVICE_URL);
@@ -190,6 +194,9 @@ class OrbitClient
         ];
         if ($this->options['useCloudIdcta']) {
             $headers['X-Feature'] = 'akamai-idcta';
+        }
+        if ($this->options['env'] === 'stage') {
+            $headers['x-forge-environment'] = 'stage';
         }
         return $headers;
     }
