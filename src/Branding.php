@@ -223,4 +223,9 @@ class Branding
             $linktrack
         );
     }
+
+    public function overrideOption(string $option, $value): void
+    {
+        $this->options[$option] = $value;
+    }
 }
