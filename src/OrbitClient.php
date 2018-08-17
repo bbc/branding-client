@@ -187,6 +187,7 @@ class OrbitClient
     private function getRequestHeaders(array $options)
     {
         $headers = [
+            'X-Feature' => 'akamai-idcta',
             'Accept' => 'application/ld+json',
             'Accept-Encoding' => 'gzip',
             'Accept-Language' => isset($options['language']) ? $options['language'] : 'en',
