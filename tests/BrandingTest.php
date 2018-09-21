@@ -68,7 +68,7 @@ class BrandingTest extends TestCase
             [['mastheadServiceId' => 'bbc_radio_cymru_mwy'], 'cymru'],
 
             // For Radio
-            [['showNavBar' => 'radio'], 'iplayer:radio'],
+            [['showNavBar' => 'radio'], 'sounds'],
 
             // Assert Service setup takes priority
             [['mastheadServiceId' => 'cbbc', 'showNavBar' => 'radio'], 'cbbc'],
