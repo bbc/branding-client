@@ -162,7 +162,7 @@ class Branding
         }
 
         $navBarSearchScopes = array(
-            'radio' => 'iplayer:radio',
+            'radio' => 'sounds',
         );
         if (array_key_exists('showNavBar', $this->options) &&
             array_key_exists($this->options['showNavBar'], $navBarSearchScopes)) {
