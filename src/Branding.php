@@ -214,14 +214,9 @@ class Branding
      * within in the BrandingTool, rather than having it there and then
      * duplicating it here too.
      */
-    public function buildNavItem($text, $href, $linktrack)
+    public function buildNavItem(string $text, string $href)
     {
-        return sprintf(
-            '<li class="br-nav__item"><a class="br-nav__link" href="%2$s" data-linktrack="%3$s">%1$s</a></li>',
-            $text,
-            $href,
-            $linktrack
-        );
+        return "<li class=\"br-nav__item\"><a class=\"br-nav__link\" href=\"{$href}\">{$text}</a></li>";
     }
 
     public function overrideOption(string $option, $value): void

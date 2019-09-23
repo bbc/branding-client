@@ -42,8 +42,8 @@ class BrandingTest extends TestCase
         );
 
         $this->assertEquals(
-            '<li class="br-nav__item"><a class="br-nav__link" href="/foo" data-linktrack="tracking">text</a></li>',
-            $branding->buildNavItem('text', '/foo', 'tracking')
+            '<li class="br-nav__item"><a class="br-nav__link" href="/foo">text</a></li>',
+            $branding->buildNavItem('text', '/foo')
         );
     }
 
