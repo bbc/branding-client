@@ -9,7 +9,14 @@
     "autoload-dev": {
         "psr-4": { "Tests\\BBC\\BrandingClient\\": "tests/" }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:bbc/programmes-caching-library.git"
+        }
+    ],
     "require": {
+        "bbc/programmes-caching-library":  "^1.1.4",
         "php": ">=7.1.0",
         "guzzlehttp/guzzle": "^6.0",
         "mustache/mustache": "~2.5",
