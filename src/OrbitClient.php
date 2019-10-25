@@ -5,6 +5,7 @@ namespace BBC\BrandingClient;
 use BBC\ProgrammesCachingLibrary\CacheInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Log\LoggerInterface;
 use function GuzzleHttp\Psr7\parse_header;
 use DateTime;
 use Mustache_Engine;
@@ -24,6 +25,9 @@ class OrbitClient
     /** @var CacheInterface */
     private $cache;
 
+    /** @var LoggerInterface  */
+    private $logger;
+
     /**
      * @var array
      *
@@ -42,10 +46,12 @@ class OrbitClient
     ];
 
     public function __construct(
+        LoggerInterface $logger,
         Client $client,
         CacheInterface $cache,
         array $options = []
     ) {
+        $this->logger = $logger;
         $this->client = $client;
         $this->cache = $cache;
 
@@ -80,7 +86,7 @@ class OrbitClient
     {
         $url = $this->getUrl();
         $headers = $this->getRequestHeaders($requestParams);
-        $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url . json_encode($requestParams));
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, md5(json_encode($requestParams)));
 
         $cacheItem = $this->cache->getItem($cacheKey);
         if (!$cacheItem->isHit()) {
@@ -94,9 +100,10 @@ class OrbitClient
                 if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
                     $responseCode = $e->getResponse()->getStatusCode();
                 }
-                if (isset($responseCode) && $responseCode != 404) {
-                    $cacheItem = $this->cache->getItem($this->cacheKey, true);
+                if (isset($responseCode) && $responseCode !== 404) {
+                    $cacheItem = $this->cache->getItem($cacheKey, true);
                     if ($cacheItem->isHit()) {
+                        $this->logger->error($e->getMessage());
                         $output = $this->renderOrbResponse($cacheItem->get(), $templateParams);
                         return new Orbit(
                             $output['head'],
