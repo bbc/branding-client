@@ -100,7 +100,7 @@ class OrbitClient
                 if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
                     $responseCode = $e->getResponse()->getStatusCode();
                 }
-                if (isset($responseCode) && $responseCode !== 404) {
+                if (!isset($responseCode) || $responseCode !== 404) {
                     $cacheItem = $this->cache->getItem($cacheKey, true);
                     if ($cacheItem->isHit()) {
                         $this->logger->error($e->getMessage());
