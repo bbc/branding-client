@@ -36,9 +36,6 @@ class BrandingClient
     /** @var CacheInterface */
     private $cache;
 
-    /** @var bool */
-    private $flushCacheItems = false;
-
     /** @var LoggerInterface  */
     private $logger;
 
@@ -67,7 +64,7 @@ class BrandingClient
         $this->client = $client;
         $this->cache = $cache;
 
-        if (array_key_exists('env', $options) && !in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
+        if (\array_key_exists('env', $options) && !\in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
             throw new BrandingException(sprintf(
                 'Invalid environment supplied, expected one of "%s" but got "%s"',
                 implode(', ', self::SUPPORTED_ENVIRONMENTS),
@@ -75,7 +72,7 @@ class BrandingClient
             ));
         }
 
-        if (array_key_exists('cacheTime', $options) && !(is_int($options['cacheTime']) && $options['cacheTime'] >= 0)) {
+        if (\array_key_exists('cacheTime', $options) && !(\is_int($options['cacheTime']) && $options['cacheTime'] >= 0)) {
             throw new BrandingException(sprintf(
                 'Invalid cacheTime supplied, expected a positive integer but got "%s"',
                 $options['cacheTime']
@@ -88,7 +85,7 @@ class BrandingClient
     public function getContent($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, md5($url));
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $url);
         $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             return $this->mapResultToBrandingObject($cacheItem->get());
@@ -120,7 +117,7 @@ class BrandingClient
     public function getContentAsync($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, md5($url));
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $url);
         $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             $brandingObject = $this->mapResultToBrandingObject($cacheItem->get());
@@ -131,7 +128,7 @@ class BrandingClient
             'headers' => ['Accept-Encoding' => 'gzip']
         ]);
         $promise = $requestPromise->then(
-            // Success callback
+        // Success callback
             function ($response) use ($cacheItem) {
                 $result = $this->parseAndCacheResponse($response, $cacheItem);
                 return $this->mapResultToBrandingObject($result);
@@ -225,18 +222,6 @@ class BrandingClient
         }
 
         return null;
-    }
-
-    private function fetchCacheItem($url)
-    {
-        $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url);
-
-        if ($this->flushCacheItems) {
-            $this->cache->deleteItem($cacheKey);
-        }
-        /** @var CacheItemInterface $cacheItem */
-        $cacheItem = $this->cache->getItem($cacheKey);
-        return $cacheItem;
     }
 
     private function parseAndCacheResponse(ResponseInterface $response, CacheItemInterface $cacheItem)
