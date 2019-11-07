@@ -2,14 +2,15 @@
 
 namespace BBC\BrandingClient;
 
+use BBC\ProgrammesCachingLibrary\CacheInterface;
 use DateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\FulfilledPromise;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use Exception;
+use Psr\Log\LoggerInterface;
 use function GuzzleHttp\Psr7\parse_header;
 
 class BrandingClient
@@ -32,11 +33,14 @@ class BrandingClient
     /** @var Client */
     private $client;
 
-    /** @var CacheItemPoolInterface */
+    /** @var CacheInterface */
     private $cache;
 
     /** @var bool */
     private $flushCacheItems = false;
+
+    /** @var LoggerInterface  */
+    private $logger;
 
     /**
      * @var array
@@ -54,10 +58,12 @@ class BrandingClient
     ];
 
     public function __construct(
+        LoggerInterface $logger,
         Client $client,
-        CacheItemPoolInterface $cache,
+        CacheInterface $cache,
         array $options = []
     ) {
+        $this->logger = $logger;
         $this->client = $client;
         $this->cache = $cache;
 
@@ -82,7 +88,8 @@ class BrandingClient
     public function getContent($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheItem = $this->fetchCacheItem($url);
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, md5($url));
+        $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             return $this->mapResultToBrandingObject($cacheItem->get());
         }
@@ -93,6 +100,18 @@ class BrandingClient
             ]);
             $result = $this->parseAndCacheResponse($response, $cacheItem);
         } catch (RequestException $e) {
+            // if the error is not a 404, return the stale value when available
+            if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
+                $responseCode = $e->getResponse()->getStatusCode();
+            }
+            if (!isset($responseCode) || $responseCode !== 404) {
+                $cacheItem = $this->cache->getItem($cacheKey, true);
+                if ($cacheItem->isHit()) {
+                    $this->logger->error($e->getMessage());
+                    return $this->mapResultToBrandingObject($cacheItem->get());
+                }
+            }
+
             throw $this->makeInvalidResponseException($e);
         }
         return $this->mapResultToBrandingObject($result);
@@ -101,36 +120,46 @@ class BrandingClient
     public function getContentAsync($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheItem = $this->fetchCacheItem($url);
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, md5($url));
+        $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             $brandingObject = $this->mapResultToBrandingObject($cacheItem->get());
             return new FulfilledPromise($brandingObject);
         }
 
-        try {
-            $requestPromise = $this->client->requestAsync('GET', $url, [
-                'headers' => ['Accept-Encoding' => 'gzip']
-            ]);
-            $promise = $requestPromise->then(
-                // Success callback
-                function ($response) use ($cacheItem) {
-                    $result = $this->parseAndCacheResponse($response, $cacheItem);
-                    return $this->mapResultToBrandingObject($result);
-                },
-                // Error callback
-                function ($reason) {
-                    if ($reason instanceof RequestException) {
-                        throw $this->makeInvalidResponseException($reason);
+        $requestPromise = $this->client->requestAsync('GET', $url, [
+            'headers' => ['Accept-Encoding' => 'gzip']
+        ]);
+        $promise = $requestPromise->then(
+            // Success callback
+            function ($response) use ($cacheItem) {
+                $result = $this->parseAndCacheResponse($response, $cacheItem);
+                return $this->mapResultToBrandingObject($result);
+            },
+            // Error callback
+            function ($reason) use ($cacheKey) {
+                if ($reason instanceof RequestException) {
+                    // if the error is not a 404, return the stale value when available
+                    if ($reason->getResponse() && $reason->getResponse()->getStatusCode()) {
+                        $responseCode = $reason->getResponse()->getStatusCode();
                     }
-                    if ($reason instanceof Exception) {
-                        throw $reason;
+                    if (!isset($responseCode) || $responseCode !== 404) {
+                        $cacheItem = $this->cache->getItem($cacheKey, true);
+                        if ($cacheItem->isHit()) {
+                            $this->logger->error($reason->getMessage());
+                            $brandingObject = $this->mapResultToBrandingObject($cacheItem->get());
+                            return new FulfilledPromise($brandingObject);
+                        }
                     }
-                    throw new BrandingException("Invalid Branding Response. Unknown error reason in callback");
+                    throw $this->makeInvalidResponseException($reason);
                 }
-            );
-        } catch (RequestException $e) {
-            throw $this->makeInvalidResponseException($e);
-        }
+                if ($reason instanceof Exception) {
+                    throw $reason;
+                }
+                throw new BrandingException("Invalid Branding Response. Unknown error reason in callback");
+            }
+        );
+
         return $promise;
     }
 
@@ -142,11 +171,6 @@ class BrandingClient
     public function getOptions()
     {
         return $this->options;
-    }
-
-    public function setFlushCacheItems($flushCacheItems)
-    {
-        $this->flushCacheItems = (bool) $flushCacheItems;
     }
 
     private function mapResultToBrandingObject(array $branding)
@@ -244,9 +268,7 @@ class BrandingClient
         }
 
         // cache the result
-        $cacheItem->set($result);
-        $cacheItem->expiresAfter($cacheTime);
-        $this->cache->save($cacheItem);
+        $this->cache->setItem($cacheItem, $result, $cacheTime);
         return $result;
     }
 
