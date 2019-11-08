@@ -128,7 +128,7 @@ class BrandingClient
             'headers' => ['Accept-Encoding' => 'gzip']
         ]);
         $promise = $requestPromise->then(
-        // Success callback
+            // Success callback
             function ($response) use ($cacheItem) {
                 $result = $this->parseAndCacheResponse($response, $cacheItem);
                 return $this->mapResultToBrandingObject($result);
