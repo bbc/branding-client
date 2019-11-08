@@ -124,8 +124,8 @@ class BrandingClient
             // Error callback
             function ($reason) use ($cacheKey) {
                 if ($reason instanceof RequestException) {
-                   $brandingObject = $this->handleRequestException($reason, $cacheKey);
-                   return new FulfilledPromise($brandingObject);
+                    $brandingObject = $this->handleRequestException($reason, $cacheKey);
+                    return new FulfilledPromise($brandingObject);
                 }
                 if ($reason instanceof Exception) {
                     throw $reason;
