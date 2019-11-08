@@ -85,7 +85,7 @@ class BrandingClient
     public function getContent($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $url);
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $projectId, $themeVersionId);
         $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             return $this->mapResultToBrandingObject($cacheItem->get());
@@ -117,7 +117,7 @@ class BrandingClient
     public function getContentAsync($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $url);
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $projectId, $themeVersionId);
         $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             $brandingObject = $this->mapResultToBrandingObject($cacheItem->get());
