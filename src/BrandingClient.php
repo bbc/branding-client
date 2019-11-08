@@ -97,19 +97,7 @@ class BrandingClient
             ]);
             $result = $this->parseAndCacheResponse($response, $cacheItem);
         } catch (RequestException $e) {
-            // if the error is not a 404, return the stale value when available
-            if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
-                $responseCode = $e->getResponse()->getStatusCode();
-            }
-            if (!isset($responseCode) || $responseCode !== 404) {
-                $cacheItem = $this->cache->getItem($cacheKey, true);
-                if ($cacheItem->isHit()) {
-                    $this->logger->error($e->getMessage());
-                    return $this->mapResultToBrandingObject($cacheItem->get());
-                }
-            }
-
-            throw $this->makeInvalidResponseException($e);
+            return $this->handleRequestException($e, $cacheKey);
         }
         return $this->mapResultToBrandingObject($result);
     }
@@ -136,19 +124,8 @@ class BrandingClient
             // Error callback
             function ($reason) use ($cacheKey) {
                 if ($reason instanceof RequestException) {
-                    // if the error is not a 404, return the stale value when available
-                    if ($reason->getResponse() && $reason->getResponse()->getStatusCode()) {
-                        $responseCode = $reason->getResponse()->getStatusCode();
-                    }
-                    if (!isset($responseCode) || $responseCode !== 404) {
-                        $cacheItem = $this->cache->getItem($cacheKey, true);
-                        if ($cacheItem->isHit()) {
-                            $this->logger->error($reason->getMessage());
-                            $brandingObject = $this->mapResultToBrandingObject($cacheItem->get());
-                            return new FulfilledPromise($brandingObject);
-                        }
-                    }
-                    throw $this->makeInvalidResponseException($reason);
+                   $brandingObject = $this->handleRequestException($reason, $cacheKey);
+                   return new FulfilledPromise($brandingObject);
                 }
                 if ($reason instanceof Exception) {
                     throw $reason;
@@ -160,6 +137,22 @@ class BrandingClient
         return $promise;
     }
 
+    private function handleRequestException($e, $cacheKey)
+    {
+        // if the error is not a 404, return the stale value when available
+        if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
+            $responseCode = $e->getResponse()->getStatusCode();
+        }
+        if (!isset($responseCode) || $responseCode !== 404) {
+            $cacheItem = $this->cache->getItem($cacheKey, true);
+            if ($cacheItem->isHit()) {
+                $this->logger->error($e->getMessage());
+                return $this->mapResultToBrandingObject($cacheItem->get());
+            }
+        }
+
+        throw $this->makeInvalidResponseException($e);
+    }
     /**
      * Retrieve the options that have been set
      *
