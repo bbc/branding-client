@@ -137,6 +137,11 @@ class BrandingClient
         return $promise;
     }
 
+    /**
+     * @param RequestException $e
+     * @param string $cacheKey
+     * @return Branding
+     */
     private function handleRequestException($e, $cacheKey)
     {
         // if the error is not a 404, return the stale value when available
