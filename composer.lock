@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cdcf99cd1f06477b1e85692597116723",
+    "content-hash": "652143396ecff5e2b7449b7d0008f215",
     "packages": [
         {
             "name": "bbc/programmes-caching-library",
