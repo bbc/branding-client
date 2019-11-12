@@ -4,6 +4,10 @@
     <exclude-pattern>./build/</exclude-pattern>
     <exclude-pattern>./vendor/</exclude-pattern>
 
+    <rule ref="CodeStyle">
+        <!-- GENERAL -->
+        <exclude name="Generic.Files.LineLength.MaxExceeded"/>
+    </rule>
     <arg value="p"/>
     <rule ref="PSR2" />
 </ruleset>

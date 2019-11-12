@@ -4,18 +4,20 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingClient;
-use GuzzleHttp\Client;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
-use Symfony\Component\Cache\Adapter\NullAdapter;
+use BBC\BrandingClient\BrandingException;
+use BBC\ProgrammesCachingLibrary\CacheInterface;
+use BBC\ProgrammesCachingLibrary\CacheWithResilience;
+use Psr\Log\LoggerInterface;
 
 class BrandingClientTest extends MultiGuzzleTestCase
 {
     public $cache;
+    public $logger;
 
-    public function setUp()
+    public function setUp(): void
     {
-        $this->cache = new NullAdapter();
+        $this->cache = $this->createMock(CacheInterface::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
     }
 
     public function testConstructor()
@@ -27,6 +29,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
         ];
 
         $brandingClient = new BrandingClient(
+            $this->logger,
             $this->getClient(),
             $this->cache
         );
@@ -43,6 +46,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
         ];
 
         $brandingClient = new BrandingClient(
+            $this->logger,
             $this->getClient(),
             $this->cache,
             $options
@@ -52,26 +56,24 @@ class BrandingClientTest extends MultiGuzzleTestCase
         $this->assertEquals($options, $brandingClient->getOptions());
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\BrandingException
-     * @expectedExceptionMessage Invalid environment supplied, expected one of "int, test, live" but got "garbage"
-     */
     public function testInvalidEnvThrowsException()
     {
+        $this->expectException(BrandingException::class);
+        $this->expectExceptionMessage('Invalid environment supplied, expected one of "int, test, live" but got "garbage"');
         new BrandingClient(
+            $this->logger,
             $this->getClient(),
             $this->cache,
             ['env' => 'garbage']
         );
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\BrandingException
-     * @expectedExceptionMessage Invalid cacheTime supplied, expected a positive integer but got "-10"
-     */
     public function testInvalidCacheTimeThrowsException()
     {
+        $this->expectException(BrandingException::class);
+        $this->expectExceptionMessage('Invalid cacheTime supplied, expected a positive integer but got "-10"');
         new BrandingClient(
+            $this->logger,
             $this->getClient(),
             $this->cache,
             ['cacheTime' => -10]
@@ -90,7 +92,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
             $history
         );
 
-        $brandingClient = new BrandingClient($client, $this->cache, $options);
+        $brandingClient = new BrandingClient($this->logger, $client, $this->cache, $options);
         $brandingClient->getContent(...$arguments);
 
         $this->assertEquals($expectedUrl, $this->getLastRequestUrl($history));
@@ -127,7 +129,7 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
         $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
 
-        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient = new BrandingClient($this->logger, $client, $this->cache);
         $this->assertEquals($expectedContent, $brandingClient->getContent('br-123'));
     }
 
@@ -143,45 +145,43 @@ class BrandingClientTest extends MultiGuzzleTestCase
 
         $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
 
-        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient = new BrandingClient($this->logger, $client, $this->cache);
         $promise = $brandingClient->getContentAsync('br-123');
         $this->assertEquals($expectedContent, $promise->wait(true));
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\BrandingException
-     * @expectedExceptionMessage Invalid Branding Response. Could not get data from webservice
-     */
     public function testInvalidContentThrowsException()
     {
+        $this->expectException(BrandingException::class);
+        $this->expectExceptionMessage('Invalid Branding Response. Could not get data from webservice');
+
         $client = $this->getClient([$this->mockInvalidJsonResponse()]);
 
-        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient = new BrandingClient($this->logger, $client, $this->cache);
         $brandingClient->getContent('br-123');
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\BrandingException
-     * @expectedExceptionMessage Invalid Branding Response. Could not get data from webservice
-     */
     public function testInvalidContentThrowsExceptionWhenPromiseResolved()
     {
+        $this->expectException(BrandingException::class);
+        $this->expectExceptionMessage('Invalid Branding Response. Could not get data from webservice');
+
         $client = $this->getClient([$this->mockInvalidJsonResponse()]);
 
-        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient = new BrandingClient($this->logger, $client, $this->cache);
         $promise = $brandingClient->getContentAsync('br-123');
         $promise->wait(true);
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\BrandingException
-     * @expectedExceptionMessage Invalid Branding Response. Response JSON object was invalid or malformed
-     */
     public function testMalformedContentThrowsException()
     {
+        $this->expectException(BrandingException::class);
+        $this->expectExceptionMessage('Invalid Branding Response. Response JSON object was invalid or malformed');
+
+
         $client = $this->getClient([$this->mockMalformedJsonResponse()]);
 
-        $brandingClient = new BrandingClient($client, $this->cache);
+        $brandingClient = new BrandingClient($this->logger, $client, $this->cache);
         $brandingClient->getContent('br-123');
     }
 
@@ -190,27 +190,16 @@ class BrandingClientTest extends MultiGuzzleTestCase
      */
     public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
-        $expectedKey = 'branding.b22b2e21ce267c3879b21fd96939bfd3';
-
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
-        $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
-            ->disableOriginalClone()
-            ->disableArgumentCloning()
-            ->disallowMockingUnknownTypes()
-            ->setMethods(['save'])
-            ->getMock();
+        $cache = $this->createMock(CacheWithResilience::class);
+        $cache->expects($this->once())->method('setItem')->with(
+            $this->anything(),
+            $this->anything(),
+            $expectedCacheDuration
+        );
 
-        $cache->expects($this->once())->method('save')->with($this->callback(
-            function ($cacheItemToSave) use ($expectedKey, $expectedCacheDuration) {
-                $current = time() + $expectedCacheDuration;
-                $this->assertEquals($expectedKey, $cacheItemToSave->getKey());
-                $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
-                return true;
-            }
-        ));
-
-        $brandingClient = new BrandingClient($client, $cache, $options);
-        $brandingClient->getContent('br-123');
+        $orbitClient = new BrandingClient($this->logger, $client, $cache, $options);
+        $orbitClient->getContent('br-123');
     }
 
     public function cachingTimesDataProvider()
@@ -259,33 +248,6 @@ class BrandingClientTest extends MultiGuzzleTestCase
                 1800
             ],
         ];
-    }
-
-    public function testFlushCacheRefreshItem()
-    {
-        $cacheItemInterface = $this->createMock(CacheItemInterface::class);
-        $cacheItemInterface->method('isHit')->willReturn(true);
-        $cacheItemInterface->method('get')->willReturn(
-            ['head' => '', 'bodyFirst' => '', 'bodyLast' => '', 'colours' => [], 'options' => []]
-        );
-
-        $cache = $this->createMock(CacheItemPoolInterface::class);
-        $cache->method('getItem')->willReturn($cacheItemInterface);
-
-        $brandingClient = new BrandingClient(
-            $this->createMock(Client::class),
-            $cache
-        );
-
-        // test if deleteItem is call when setFlushCacheItems is set to true
-        $brandingClient->setFlushCacheItems(true);
-        $cache->expects($this->once())->method('deleteItem');
-        $brandingClient->getContent('');
-
-        // test if deleteItem is not call when setFlushCacheItems is set to false
-        $brandingClient->setFlushCacheItems(false);
-        $cache->expects($this->never())->method('deleteItem');
-        $brandingClient->getContent('');
     }
 
     private function mockSuccessfulJsonResponse(array $headers = [])
