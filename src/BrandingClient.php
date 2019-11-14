@@ -158,6 +158,7 @@ class BrandingClient
 
         throw $this->makeInvalidResponseException($e);
     }
+
     /**
      * Retrieve the options that have been set
      *
