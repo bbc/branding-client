@@ -26,6 +26,8 @@ class BrandingClient
     const BRANDING_WEBSERVICE_PREVIEW_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/previews/{themeVersionId}.json';
     // @codingStandardsIgnoreEnd
 
+    const REQUEST_TIMEOUT = 3;
+
     const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
 
     const FALLBACK_CACHE_DURATION = 1800;
@@ -93,7 +95,7 @@ class BrandingClient
 
         try {
             $response = $this->client->get($url, [
-                'headers' => ['Accept-Encoding' => 'gzip']
+                'headers' => ['Accept-Encoding' => 'gzip'], 'timeout' => self::REQUEST_TIMEOUT
             ]);
             $result = $this->parseAndCacheResponse($response, $cacheItem);
         } catch (RequestException $e) {
@@ -113,7 +115,7 @@ class BrandingClient
         }
 
         $requestPromise = $this->client->requestAsync('GET', $url, [
-            'headers' => ['Accept-Encoding' => 'gzip']
+            'headers' => ['Accept-Encoding' => 'gzip'], 'timeout' => self::REQUEST_TIMEOUT
         ]);
         $promise = $requestPromise->then(
             // Success callback

@@ -4,6 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Orbit;
 use BBC\BrandingClient\OrbitStubClient;
+use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class OrbitStubClientTest extends MultiGuzzleTestCase
@@ -25,8 +26,9 @@ class OrbitStubClientTest extends MultiGuzzleTestCase
     public function testGetContentWithPresentButUnusedConstructor()
     {
         $orbitClient = new OrbitStubClient(
+            new NullLogger(),
             $this->getClient(),
-            new NullAdapter()
+            null
         );
 
         $expectedOrbit = new Orbit(

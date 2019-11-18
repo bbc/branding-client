@@ -2,14 +2,16 @@
 
 namespace BBC\BrandingClient;
 
+use BBC\ProgrammesCachingLibrary\CacheInterface;
 use GuzzleHttp\Client;
-use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 
 class OrbitStubClient extends OrbitClient
 {
     public function __construct(
+        LoggerInterface $logger = null,
         Client $client = null,
-        CacheItemPoolInterface $cache = null,
+        CacheInterface $cache = null,
         array $options = []
     ) {
     }
