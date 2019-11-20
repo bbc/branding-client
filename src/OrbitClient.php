@@ -2,11 +2,11 @@
 
 namespace BBC\BrandingClient;
 
+use BBC\ProgrammesCachingLibrary\CacheInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Log\LoggerInterface;
 use function GuzzleHttp\Psr7\parse_header;
-use Psr\Cache\CacheItemPoolInterface;
-use Psr\Cache\CacheItemInterface;
 use DateTime;
 use Mustache_Engine;
 
@@ -22,11 +22,11 @@ class OrbitClient
     /** @var Client */
     private $client;
 
-    /** @var CacheItemPoolInterface */
+    /** @var CacheInterface */
     private $cache;
 
-    /** @var bool */
-    private $flushCacheItems = false;
+    /** @var LoggerInterface  */
+    private $logger;
 
     /**
      * @var array
@@ -46,10 +46,12 @@ class OrbitClient
     ];
 
     public function __construct(
+        LoggerInterface $logger,
         Client $client,
-        CacheItemPoolInterface $cache,
+        CacheInterface $cache,
         array $options = []
     ) {
+        $this->logger = $logger;
         $this->client = $client;
         $this->cache = $cache;
 
@@ -84,12 +86,8 @@ class OrbitClient
     {
         $url = $this->getUrl();
         $headers = $this->getRequestHeaders($requestParams);
-        $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url . json_encode($requestParams));
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, md5(json_encode($requestParams)));
 
-        if ($this->flushCacheItems) {
-            $this->cache->deleteItem($cacheKey);
-        }
-        /** @var CacheItemInterface $cacheItem */
         $cacheItem = $this->cache->getItem($cacheKey);
         if (!$cacheItem->isHit()) {
             try {
@@ -98,6 +96,22 @@ class OrbitClient
                 ]);
                 $result = json_decode($response->getBody()->getContents(), true);
             } catch (RequestException $e) {
+                // if the error is not a 404, return the stale value when available
+                if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
+                    $responseCode = $e->getResponse()->getStatusCode();
+                }
+                if (!isset($responseCode) || $responseCode !== 404) {
+                    $cacheItem = $this->cache->getItem($cacheKey, true);
+                    if ($cacheItem->isHit()) {
+                        $this->logger->error($e->getMessage());
+                        $output = $this->renderOrbResponse($cacheItem->get(), $templateParams);
+                        return new Orbit(
+                            $output['head'],
+                            $output['bodyFirst'],
+                            $output['bodyLast']
+                        );
+                    }
+                }
                 throw new OrbitException('Invalid Orbit Response. Could not get data from webservice', 0, $e);
             }
 
@@ -126,15 +140,10 @@ class OrbitClient
                 }
             }
 
-            // cache the result
-            $cacheItem->set($result);
-            $cacheItem->expiresAfter($cacheTime);
-            $this->cache->save($cacheItem);
+            $this->cache->setItem($cacheItem, $result, $cacheTime);
         }
 
-        $cachedResponse = $cacheItem->get();
-
-        $output = $this->renderOrbResponse($cachedResponse, $templateParams);
+        $output = $this->renderOrbResponse($cacheItem->get(), $templateParams);
 
         return new Orbit(
             $output['head'],
@@ -151,11 +160,6 @@ class OrbitClient
     public function getOptions()
     {
         return $this->options;
-    }
-
-    public function setFlushCacheItems(bool $flushCacheItems): void
-    {
-        $this->flushCacheItems = $flushCacheItems;
     }
 
     /**

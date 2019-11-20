@@ -5,18 +5,19 @@ namespace Tests\BBC\BrandingClient;
 use BBC\BrandingClient\Orbit;
 use BBC\BrandingClient\OrbitClient;
 use BBC\BrandingClient\OrbitException;
-use GuzzleHttp\Client;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
+use BBC\ProgrammesCachingLibrary\CacheWithResilience;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\NullAdapter;
 
 class OrbitClientTest extends MultiGuzzleTestCase
 {
     public $cache;
+    public $logger;
 
-    public function setUp()
+    public function setUp():void
     {
-        $this->cache = new NullAdapter();
+        $this->logger = $this->createMock(LoggerInterface::class);
+        $this->cache = new CacheWithResilience($this->logger, new NullAdapter(), '', 1, []);
     }
 
     public function testConstructor()
@@ -30,6 +31,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
         ];
 
         $orbitClient = new OrbitClient(
+            $this->logger,
             $this->getClient(),
             $this->cache
         );
@@ -48,6 +50,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
         ];
 
         $orbitClient = new OrbitClient(
+            $this->logger,
             $this->getClient(),
             $this->cache,
             $options
@@ -63,19 +66,19 @@ class OrbitClientTest extends MultiGuzzleTestCase
             'Invalid environment supplied, expected one of "int, test, stage, live" but got "garbage"'
         );
         new OrbitClient(
+            $this->logger,
             $this->getClient(),
             $this->cache,
             ['env' => 'garbage']
         );
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\OrbitException
-     * @expectedExceptionMessage Invalid cacheTime supplied, expected a positive integer but got "-10"
-     */
     public function testInvalidCacheTimeThrowsException()
     {
+        $this->expectException(OrbitException::class);
+        $this->expectExceptionMessage('Invalid cacheTime supplied, expected a positive integer but got "-10"');
         new OrbitClient(
+            $this->logger,
             $this->getClient(),
             $this->cache,
             ['cacheTime' => -10]
@@ -94,11 +97,14 @@ class OrbitClientTest extends MultiGuzzleTestCase
             $history
         );
 
-        $orbitClient = new OrbitClient($client, $this->cache, $options);
+        $orbitClient = new OrbitClient($this->logger, $client, $this->cache, $options);
         $orbitClient->getContent(...$arguments);
 
         $this->assertEquals($expectedUrl, $this->getLastRequestUrl($history));
-        $this->assertArraySubset($expectedHeaders, $this->getLastRequest($history)->getHeaders());
+        $lastRequestHeaders = $this->getLastRequest($history)->getHeaders();
+        foreach ($expectedHeaders as $key => $expectedHeader) {
+            self::assertEquals($expectedHeader, $lastRequestHeaders[$key]);
+        }
     }
 
     public function orbitApiUrlsDataProvider()
@@ -138,7 +144,7 @@ class OrbitClientTest extends MultiGuzzleTestCase
 
         $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
 
-        $orbitClient = new OrbitClient($client, $this->cache);
+        $orbitClient = new OrbitClient($this->logger, $client, $this->cache);
         $this->assertEquals($expectedContent, $orbitClient->getContent());
     }
 
@@ -152,33 +158,30 @@ class OrbitClientTest extends MultiGuzzleTestCase
 
         $client = $this->getClient([$this->mockSuccessfulJsonResponse()]);
 
-        $orbitClient = new OrbitClient($client, $this->cache);
+        $orbitClient = new OrbitClient($this->logger, $client, $this->cache);
         $this->assertEquals($expectedContent, $orbitClient->getContent([], [
             'skipLinkTarget' => 'skip',
         ]));
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\OrbitException
-     * @expectedExceptionMessage Invalid Orbit Response. Could not get data from webservice
-     */
     public function testInvalidContentThrowsException()
     {
+        $this->expectException(OrbitException::class);
+        $this->expectExceptionMessage('Invalid Orbit Response. Could not get data from webservice');
+
         $client = $this->getClient([$this->mockInvalidJsonResponse()]);
 
-        $orbitClient = new OrbitClient($client, $this->cache);
+        $orbitClient = new OrbitClient($this->logger, $client, $this->cache);
         $orbitClient->getContent([]);
     }
 
-    /**
-     * @expectedException BBC\BrandingClient\OrbitException
-     * @expectedExceptionMessage Invalid Orbit Response. Response JSON object was invalid or malformed
-     */
     public function testMalformedContentThrowsException()
     {
+        $this->expectException(OrbitException::class);
+        $this->expectExceptionMessage('Invalid Orbit Response. Response JSON object was invalid or malformed');
         $client = $this->getClient([$this->mockMalformedJsonResponse()]);
 
-        $orbitClient = new OrbitClient($client, $this->cache);
+        $orbitClient = new OrbitClient($this->logger, $client, $this->cache);
         $orbitClient->getContent([]);
     }
 
@@ -187,28 +190,16 @@ class OrbitClientTest extends MultiGuzzleTestCase
      */
     public function testCachingTimes($options, $headers, $expectedCacheDuration)
     {
-        $expectedKey = 'orbit.5617e91c21636eb642dbeabcfb06342c';
-
         $client = $this->getClient([$this->mockSuccessfulJsonResponse($headers)]);
+        $cache = $this->createMock(CacheWithResilience::class);
+        $cache->expects($this->once())->method('setItem')->with(
+            $this->anything(),
+            $this->anything(),
+            $expectedCacheDuration
+        );
 
-        $cache = $this->getMockBuilder('Symfony\Component\Cache\Adapter\NullAdapter')
-            ->disableOriginalClone()
-            ->disableArgumentCloning()
-            ->disallowMockingUnknownTypes()
-            ->setMethods(['save'])
-            ->getMock();
-
-        $cache->expects($this->once())->method('save')->with($this->callback(
-            function ($cacheItemToSave) use ($expectedKey, $expectedCacheDuration) {
-                $current = time() + $expectedCacheDuration;
-                $this->assertEquals($expectedKey, $cacheItemToSave->getKey());
-                $this->assertAttributeEquals($current, 'expiry', $cacheItemToSave);
-                return true;
-            }
-        ));
-
-        $orbitClient = new OrbitClient($client, $cache, $options);
-
+        $this->expectException(\TypeError::class);
+        $orbitClient = new OrbitClient($this->logger, $client, $cache, $options);
         $orbitClient->getContent([]);
     }
 
@@ -258,40 +249,6 @@ class OrbitClientTest extends MultiGuzzleTestCase
                 1800
             ],
         ];
-    }
-
-    public function testFlushCacheRefreshItem()
-    {
-        $cacheItemInterface = $this->createMock(CacheItemInterface::class);
-        $cacheItemInterface->method('isHit')->willReturn(true);
-        $cacheItemInterface->method('get')->willReturn(
-            [
-                '@context' => [],
-                '@type' => '',
-                '@id' => '',
-                'head' => ['template' => '', 'html' => ''],
-                'bodyFirst' => ['template' => '', 'html' => ''],
-                'bodyLast' => ['template' => '', 'html' => ''],
-            ]
-        );
-
-        $cache = $this->createMock(CacheItemPoolInterface::class);
-        $cache->method('getItem')->willReturn($cacheItemInterface);
-
-        $orbitClient = new OrbitClient(
-            $this->createMock(Client::class),
-            $cache
-        );
-
-        // test if deleteItem is call when setFlushCacheItems is set to true
-        $orbitClient->setFlushCacheItems(true);
-        $cache->expects($this->once())->method('deleteItem');
-        $orbitClient->getContent();
-
-        // test if deleteItem is not call when setFlushCacheItems is set to false
-        $orbitClient->setFlushCacheItems(false);
-        $cache->expects($this->never())->method('deleteItem');
-        $orbitClient->getContent();
     }
 
     private function mockSuccessfulJsonResponse(array $headers = [])

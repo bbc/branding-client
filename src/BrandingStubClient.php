@@ -2,15 +2,17 @@
 
 namespace BBC\BrandingClient;
 
+use BBC\ProgrammesCachingLibrary\CacheInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Promise\FulfilledPromise;
-use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 
 class BrandingStubClient extends BrandingClient
 {
     public function __construct(
+        LoggerInterface $logger = null,
         Client $client = null,
-        CacheItemPoolInterface $cache = null,
+        CacheInterface $cache = null,
         array $options = []
     ) {
     }

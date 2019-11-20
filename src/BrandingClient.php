@@ -2,14 +2,15 @@
 
 namespace BBC\BrandingClient;
 
+use BBC\ProgrammesCachingLibrary\CacheInterface;
 use DateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\FulfilledPromise;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use Exception;
+use Psr\Log\LoggerInterface;
 use function GuzzleHttp\Psr7\parse_header;
 
 class BrandingClient
@@ -25,6 +26,8 @@ class BrandingClient
     const BRANDING_WEBSERVICE_PREVIEW_URL_DEV = 'https://branding.test.files.bbci.co.uk/branding/{env}/previews/{themeVersionId}.json';
     // @codingStandardsIgnoreEnd
 
+    const REQUEST_TIMEOUT = 3;
+
     const SUPPORTED_ENVIRONMENTS = ['int', 'test', 'live'];
 
     const FALLBACK_CACHE_DURATION = 1800;
@@ -32,11 +35,11 @@ class BrandingClient
     /** @var Client */
     private $client;
 
-    /** @var CacheItemPoolInterface */
+    /** @var CacheInterface */
     private $cache;
 
-    /** @var bool */
-    private $flushCacheItems = false;
+    /** @var LoggerInterface  */
+    private $logger;
 
     /**
      * @var array
@@ -54,14 +57,16 @@ class BrandingClient
     ];
 
     public function __construct(
+        LoggerInterface $logger,
         Client $client,
-        CacheItemPoolInterface $cache,
+        CacheInterface $cache,
         array $options = []
     ) {
+        $this->logger = $logger;
         $this->client = $client;
         $this->cache = $cache;
 
-        if (array_key_exists('env', $options) && !in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
+        if (\array_key_exists('env', $options) && !\in_array($options['env'], self::SUPPORTED_ENVIRONMENTS)) {
             throw new BrandingException(sprintf(
                 'Invalid environment supplied, expected one of "%s" but got "%s"',
                 implode(', ', self::SUPPORTED_ENVIRONMENTS),
@@ -69,7 +74,7 @@ class BrandingClient
             ));
         }
 
-        if (array_key_exists('cacheTime', $options) && !(is_int($options['cacheTime']) && $options['cacheTime'] >= 0)) {
+        if (\array_key_exists('cacheTime', $options) && !(\is_int($options['cacheTime']) && $options['cacheTime'] >= 0)) {
             throw new BrandingException(sprintf(
                 'Invalid cacheTime supplied, expected a positive integer but got "%s"',
                 $options['cacheTime']
@@ -82,18 +87,19 @@ class BrandingClient
     public function getContent($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheItem = $this->fetchCacheItem($url);
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $projectId, $themeVersionId);
+        $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             return $this->mapResultToBrandingObject($cacheItem->get());
         }
 
         try {
             $response = $this->client->get($url, [
-                'headers' => ['Accept-Encoding' => 'gzip']
+                'headers' => ['Accept-Encoding' => 'gzip'], 'timeout' => self::REQUEST_TIMEOUT
             ]);
             $result = $this->parseAndCacheResponse($response, $cacheItem);
         } catch (RequestException $e) {
-            throw $this->makeInvalidResponseException($e);
+            return $this->handleRequestException($e, $cacheKey);
         }
         return $this->mapResultToBrandingObject($result);
     }
@@ -101,37 +107,58 @@ class BrandingClient
     public function getContentAsync($projectId, $themeVersionId = null)
     {
         $url = $this->getUrl($projectId, $themeVersionId);
-        $cacheItem = $this->fetchCacheItem($url);
+        $cacheKey = $this->cache->keyHelper(__CLASS__, __FUNCTION__, $projectId, $themeVersionId);
+        $cacheItem = $this->cache->getItem($cacheKey);
         if ($cacheItem->isHit()) {
             $brandingObject = $this->mapResultToBrandingObject($cacheItem->get());
             return new FulfilledPromise($brandingObject);
         }
 
-        try {
-            $requestPromise = $this->client->requestAsync('GET', $url, [
-                'headers' => ['Accept-Encoding' => 'gzip']
-            ]);
-            $promise = $requestPromise->then(
-                // Success callback
-                function ($response) use ($cacheItem) {
-                    $result = $this->parseAndCacheResponse($response, $cacheItem);
-                    return $this->mapResultToBrandingObject($result);
-                },
-                // Error callback
-                function ($reason) {
-                    if ($reason instanceof RequestException) {
-                        throw $this->makeInvalidResponseException($reason);
-                    }
-                    if ($reason instanceof Exception) {
-                        throw $reason;
-                    }
-                    throw new BrandingException("Invalid Branding Response. Unknown error reason in callback");
+        $requestPromise = $this->client->requestAsync('GET', $url, [
+            'headers' => ['Accept-Encoding' => 'gzip'], 'timeout' => self::REQUEST_TIMEOUT
+        ]);
+        $promise = $requestPromise->then(
+            // Success callback
+            function ($response) use ($cacheItem) {
+                $result = $this->parseAndCacheResponse($response, $cacheItem);
+                return $this->mapResultToBrandingObject($result);
+            },
+            // Error callback
+            function ($reason) use ($cacheKey) {
+                if ($reason instanceof RequestException) {
+                    $brandingObject = $this->handleRequestException($reason, $cacheKey);
+                    return new FulfilledPromise($brandingObject);
                 }
-            );
-        } catch (RequestException $e) {
-            throw $this->makeInvalidResponseException($e);
-        }
+                if ($reason instanceof Exception) {
+                    throw $reason;
+                }
+                throw new BrandingException("Invalid Branding Response. Unknown error reason in callback");
+            }
+        );
+
         return $promise;
+    }
+
+    /**
+     * @param RequestException $e
+     * @param string $cacheKey
+     * @return Branding
+     */
+    private function handleRequestException($e, $cacheKey)
+    {
+        // if the error is not a 404, return the stale value when available
+        if ($e->getResponse() && $e->getResponse()->getStatusCode()) {
+            $responseCode = $e->getResponse()->getStatusCode();
+        }
+        if (!isset($responseCode) || $responseCode !== 404) {
+            $cacheItem = $this->cache->getItem($cacheKey, true);
+            if ($cacheItem->isHit()) {
+                $this->logger->error($e->getMessage());
+                return $this->mapResultToBrandingObject($cacheItem->get());
+            }
+        }
+
+        throw $this->makeInvalidResponseException($e);
     }
 
     /**
@@ -142,11 +169,6 @@ class BrandingClient
     public function getOptions()
     {
         return $this->options;
-    }
-
-    public function setFlushCacheItems($flushCacheItems)
-    {
-        $this->flushCacheItems = (bool) $flushCacheItems;
     }
 
     private function mapResultToBrandingObject(array $branding)
@@ -203,18 +225,6 @@ class BrandingClient
         return null;
     }
 
-    private function fetchCacheItem($url)
-    {
-        $cacheKey = $this->options['cacheKeyPrefix'] . '.' . md5($url);
-
-        if ($this->flushCacheItems) {
-            $this->cache->deleteItem($cacheKey);
-        }
-        /** @var CacheItemInterface $cacheItem */
-        $cacheItem = $this->cache->getItem($cacheKey);
-        return $cacheItem;
-    }
-
     private function parseAndCacheResponse(ResponseInterface $response, CacheItemInterface $cacheItem)
     {
         $result = json_decode($response->getBody()->getContents(), true);
@@ -244,9 +254,7 @@ class BrandingClient
         }
 
         // cache the result
-        $cacheItem->set($result);
-        $cacheItem->expiresAfter($cacheTime);
-        $this->cache->save($cacheItem);
+        $this->cache->setItem($cacheItem, $result, $cacheTime);
         return $result;
     }
 

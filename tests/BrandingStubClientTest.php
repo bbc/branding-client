@@ -4,7 +4,7 @@ namespace Tests\BBC\BrandingClient;
 
 use BBC\BrandingClient\Branding;
 use BBC\BrandingClient\BrandingStubClient;
-use Symfony\Component\Cache\Adapter\NullAdapter;
+use Psr\Log\NullLogger;
 
 class BrandingStubClientTest extends MultiGuzzleTestCase
 {
@@ -31,8 +31,9 @@ class BrandingStubClientTest extends MultiGuzzleTestCase
     public function testGetContentWithPresentButUnusedConstructor()
     {
         $brandingClient = new BrandingStubClient(
+            new NullLogger(),
             $this->getClient(),
-            new NullAdapter()
+            null
         );
 
         $expectedBranding = new Branding(
