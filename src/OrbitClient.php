@@ -200,7 +200,7 @@ class OrbitClient
             $headers['X-Feature'] = 'akamai-idcta';
         }
         if ($this->options['env'] === 'stage') {
-            $headers['x-forge-environment'] = 'stage';
+            $headers['x-feature'] = 'forge-free';
         }
         return $headers;
     }
