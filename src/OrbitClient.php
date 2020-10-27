@@ -201,7 +201,7 @@ class OrbitClient
         }
         if ($this->options['env'] === 'stage') {
             $headers['x-forge-environment'] = 'stage';
-            $headers['x-feature'] = 'forge-free';
+            empty($headers['X-Feature']) ? $headers['X-Feature'] = 'forge-free' : $headers['X-Feature'] .= ', forge-free';
         }
         return $headers;
     }
