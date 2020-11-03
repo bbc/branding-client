@@ -201,6 +201,8 @@ class OrbitClient
         }
         if ($this->options['env'] === 'stage') {
             $headers['x-forge-environment'] = 'stage';
+        }
+        if (in_array($this->options['env'], ['int', 'stage', 'test', 'sandbox'])) {
             empty($headers['X-Feature']) ? $headers['X-Feature'] = 'forge-free' : $headers['X-Feature'] .= ', forge-free';
         }
         return $headers;
