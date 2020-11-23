@@ -195,7 +195,9 @@ class OrbitClient
             'Accept-Encoding' => 'gzip',
             'Accept-Language' => isset($options['language']) ? $options['language'] : 'en',
             'X-Orb-Variant' => isset($options['variant']) ? $options['variant'] : 'default',
-            'X-Feature' => isset($options['useCloudIdcta']) ? 'akamai-idcta, forge-free' : 'forge-free'
+            'X-Feature' => $this->options['useCloudIdcta'] === true
+              ? 'akamai-idcta, forge-free'
+              : 'forge-free'
         ];
 
         if ($this->options['env'] === 'stage') {

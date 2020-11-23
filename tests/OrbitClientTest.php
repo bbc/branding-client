@@ -132,6 +132,11 @@ class OrbitClientTest extends MultiGuzzleTestCase
             [['env' => 'live', 'useCloudIdcta' => true], [], 'https://navigation.api.bbci.co.uk/api', [
                 'X-Feature' => ['akamai-idcta, forge-free'],
             ]],
+
+            // With cloud idcta option set to false
+            [['env' => 'live', 'useCloudIdcta' => false], [], 'https://navigation.api.bbci.co.uk/api', [
+              'X-Feature' => ['forge-free'],
+          ]],
         ];
     }
 
