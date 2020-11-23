@@ -124,13 +124,19 @@ class OrbitClientTest extends MultiGuzzleTestCase
                     'Accept-Encoding' => ['gzip'],
                     'X-Orb-Variant' => ['cbbc'],
                     'Accept-Language' => ['cy_CY'],
+                    'X-Feature' => ['forge-free']
                 ]
             ],
 
             // With cloud idcta option set to true
             [['env' => 'live', 'useCloudIdcta' => true], [], 'https://navigation.api.bbci.co.uk/api', [
-                'X-Feature' => ['akamai-idcta'],
+                'X-Feature' => ['akamai-idcta, forge-free'],
             ]],
+
+            // With cloud idcta option set to false
+            [['env' => 'live', 'useCloudIdcta' => false], [], 'https://navigation.api.bbci.co.uk/api', [
+              'X-Feature' => ['forge-free'],
+          ]],
         ];
     }
 

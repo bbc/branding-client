@@ -195,16 +195,15 @@ class OrbitClient
             'Accept-Encoding' => 'gzip',
             'Accept-Language' => isset($options['language']) ? $options['language'] : 'en',
             'X-Orb-Variant' => isset($options['variant']) ? $options['variant'] : 'default',
+            'X-Feature' => $this->options['useCloudIdcta'] === true
+              ? 'akamai-idcta, forge-free'
+              : 'forge-free'
         ];
-        if ($this->options['useCloudIdcta']) {
-            $headers['X-Feature'] = 'akamai-idcta';
-        }
+
         if ($this->options['env'] === 'stage') {
             $headers['x-forge-environment'] = 'stage';
         }
-        if (in_array($this->options['env'], ['int', 'stage', 'test', 'sandbox'])) {
-            empty($headers['X-Feature']) ? $headers['X-Feature'] = 'forge-free' : $headers['X-Feature'] .= ', forge-free';
-        }
+
         return $headers;
     }
 
